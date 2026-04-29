@@ -180,29 +180,31 @@ function closeCustomWeaponsModal(accepted) {
 }
 
 function getGear(weapon, customWeaponsArray = []) {
+    if (weapon === "Todas as armas") {
+        return "0";
+    }
+
+    let allowed = [];
     if (weapon === "Somente Sniper") {
-        return "FGHIJKLMacefghjklOQRSTUVWX";
+        allowed = Object.keys(customWeaponGroups["Snipers"]);
+    } else if (weapon === "Somente Pistola") {
+        allowed = Object.keys(customWeaponGroups["Pistolas"]);
+    } else if (weapon === "Somente Granada") {
+        // Permitir HK69 (K), HE Grenade (O) e Smoke Grenade (Q)
+        allowed = ["K", "O", "Q"];
+    } else if (weapon === "Personalizadas") {
+        allowed = customWeaponsArray;
     }
 
-    if (weapon === "Somente Pistola") {
-        return "HIJKLMNZacehijkOQRSTUVX";
-    }
+    // Cálculo dinâmico: Percorre a sequência oficial e remove o que for permitido
+    let gearStr = "";
+    OFFICIAL_GEAR_ORDER.split("").forEach(letter => {
+        if (!allowed.includes(letter)) {
+            gearStr += letter;
+        }
+    });
 
-    if (weapon === "Somente Granada") {
-        return "FGHIJLMNZacefghijklOQRSTUVWX";
-    }
-    
-    if (weapon === "Personalizadas") {
-        let gearStr = "";
-        OFFICIAL_GEAR_ORDER.split("").forEach(letter => {
-            if (!customWeaponsArray.includes(letter)) {
-                gearStr += letter;
-            }
-        });
-        return gearStr || "0";
-    }
-
-    return "0";
+    return gearStr || "0";
 }
 
 /*
