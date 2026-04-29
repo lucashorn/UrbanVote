@@ -678,8 +678,8 @@ table.dataTable tbody td {
 /* Custom Weapons Modal */
 .custom-gear-modal {
     background: #161b22;
-    width: 90%;
-    max-width: 900px;
+    width: 95%;
+    max-width: 1000px;
     padding: 20px;
     border: 1px solid #00ff99;
     border-radius: 10px;
@@ -687,7 +687,7 @@ table.dataTable tbody td {
 
 .custom-weapons-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     align-items: start;
     gap: 15px;
     margin-bottom: 20px;
