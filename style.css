@@ -679,15 +679,16 @@ table.dataTable tbody td {
 .custom-gear-modal {
     background: #161b22;
     width: 90%;
-    max-width: 800px;
+    max-width: 900px;
     padding: 20px;
     border: 1px solid #00ff99;
     border-radius: 10px;
 }
 
 .custom-weapons-grid {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: start;
     gap: 15px;
     margin-bottom: 20px;
     max-height: 60vh;
@@ -715,9 +716,9 @@ table.dataTable tbody td {
 }
 
 .custom-weapons-subgrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .custom-weapon-item {
