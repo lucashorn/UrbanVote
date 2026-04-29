@@ -1,0 +1,18 @@
+# Logs
+*.log
+games.log
+server.log
+
+# Data files
+kills_stats.json
+kills_daily_offset.json
+votes.json
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

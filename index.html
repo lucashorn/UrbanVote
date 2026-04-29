@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terroismo Urbanor - Map vote inverso</title>
+    <link rel="icon" href="img/ico.jpeg" type="image/jpeg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.dataTables.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header>
+        <img src="img/logo.png" alt="Urban Terror" class="site-logo">
+        <h1>Votação de Mapas</h1>
+
+        <div id="dashboard">
+            <div class="dashboard-stats">
+            <div class="stat-row">
+            <label>Mapa mais votado:</label>
+            <span id="topMap">-</span>
+            </div>
+            <div class="stat-row">
+            <label>Modo mais votado:</label>
+            <span id="topMode">-</span>
+            </div>
+            <div class="stat-row">
+            <label>Total de votos:</label>
+            <span id="totalVotes">0</span>
+            </div>
+            </div>
+
+            <div id="ranking"></div>
+
+            <hr>
+
+            <div class="dashboard-actions">
+            <button id="downloadMapcycle"><i class="fas fa-download"></i> Mapcycle</button>
+            <button id="resetVotesBtn"><i class="fas fa-rotate-left"></i> Resetar</button>
+            </div>
+        </div>
+    </header>
+
+    <button id="killRankingBtn" title="Ranking de Kills">
+        <i class="fas fa-skull"></i>
+    </button>
+
+    <div id="killRankingPanel">
+        <div class="kill-panel-header">
+            <span><i class="fas fa-skull"></i> Ranking de Kills</span>
+            <button id="killPanelClose">&times;</button>
+        </div>
+        <div class="kill-panel-tabs">
+            <button class="kill-tab active" data-tab="daily">Diário</button>
+            <button class="kill-tab" data-tab="all">Geral</button>
+        </div>
+        <div id="killPanelBody">
+            <p style="color:#888;text-align:center;padding:20px">Carregando...</p>
+        </div>
+    </div>
+
+    <main>
+        <div class="map-grid" id="mapGrid"></div>
+    </main>
+
+    <div id="voteModal" class="modal">
+        <div class="modal-content compact-modal">
+            <span class="close">&times;</span>
+
+            <h2 id="modalMapName"></h2>
+
+            <div class="label-row">
+                <label>Modo de jogo</label>
+                <button class="help-btn" onclick="toggleModeInfo()">?</button>
+            </div>
+
+            <div id="modeInfoPanel" class="mode-info-panel" style="display:none">
+                <p><strong>LMS</strong> – Last Man Standing: sem times; cada jogador tem vidas limitadas. O último a
+                    sobreviver vence.</p>
+                <p><strong>FFA</strong> – Free for All: todos contra todos, sem times. Quem acumular mais kills vence.
+                </p>
+                <p><strong>TDM</strong> – Team Deathmatch: dois times; o que tiver mais kills ao fim do tempo vence.</p>
+                <p><strong>TS</strong> – Team Survivor: sem respawn por rodada. O time que eliminar todos os adversários
+                    ganha.</p>
+                <p><strong>FTL</strong> – Follow the Leader: proteja seu líder enquanto ataca o líder inimigo.</p>
+                <p><strong>CNH</strong> – Capture &amp; Hold: conquiste e mantenha bandeiras espalhadas pelo mapa.</p>
+                <p><strong>CTF</strong> – Capture the Flag: roube a bandeira inimiga e leve à sua base.</p>
+                <p><strong>BM</strong> – Bomb &amp; Defuse: um time planta a bomba, o outro tenta desarmá-la.</p>
+                <p><strong>JUMP</strong> – Jump Mode: percursos de parkour pelo mapa, sem combate.</p>
+                <p><strong>FT</strong> – Freeze Tag: congele os inimigos; o time que congelar todos os adversários
+                    vence.</p>
+                <p><strong>GUN</strong> – Gun Game: cada kill avança para uma arma diferente. Primeiro a completar o
+                    ciclo vence.</p>
+            </div>
+
+            <div class="button-grid" id="modeButtons"></div>
+
+            <label>Tipo de arma</label>
+            <div class="weapon-grid">
+                <button class="weapon-btn" data-weapon="Somente Sniper">Sniper</button>
+                <button class="weapon-btn" data-weapon="Somente Pistola">Pistola</button>
+                <button class="weapon-btn" data-weapon="Somente Granada">Lança Granada</button>
+                <button class="weapon-btn active" data-weapon="Todas as armas">Todas</button>
+            </div>
+
+            <label>Friendly Fire</label>
+            <div class="ff-grid">
+                <button class="ff-btn active" data-ff="0">Sem FF</button>
+                <button class="ff-btn" data-ff="1">Com FF</button>
+            </div>
+
+            <button id="confirmVote">Confirmar Voto</button>
+        </div>
+    </div>
+
+    <div id="serverWidget" class="server-widget">
+        <div class="server-status-container">
+            <span id="serverStatusDot" class="status-dot offline"></span>
+            <span id="serverStatusText">Servidor Offline</span>
+        </div>
+        <div class="server-widget-actions">
+            <button id="startServerBtn" class="btn-start"><i class="fas fa-play"></i> Iniciar</button>
+            <button id="stopServerBtn" class="btn-stop" style="display:none"><i class="fas fa-stop"></i> Parar</button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
+    <script src="script.js?v=8"></script>
+</body>
+
+</html>
