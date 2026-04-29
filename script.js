@@ -116,6 +116,8 @@ const customWeaponGroups = {
 const customWeaponMapping = {};
 Object.values(customWeaponGroups).forEach(group => Object.assign(customWeaponMapping, group));
 
+const OFFICIAL_GEAR_ORDER = "FGHIJKLMNZacefghijklOQRSTUVWX";
+
 let selectedCustomWeapons = Object.keys(customWeaponMapping);
 
 function openCustomWeaponsModal() {
@@ -192,7 +194,7 @@ function getGear(weapon, customWeaponsArray = []) {
     
     if (weapon === "Personalizadas") {
         let gearStr = "";
-        Object.keys(customWeaponMapping).forEach(letter => {
+        OFFICIAL_GEAR_ORDER.split("").forEach(letter => {
             if (!customWeaponsArray.includes(letter)) {
                 gearStr += letter;
             }
