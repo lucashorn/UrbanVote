@@ -561,7 +561,7 @@ table.dataTable tbody td {
     color: white;
 }
 
-#confirmVote {
+#confirmVote, #confirmCustomWeapons {
     width: 100%;
     padding: 12px;
     background: #00ff99;
@@ -569,6 +569,7 @@ table.dataTable tbody td {
     font-weight: bold;
     cursor: pointer;
     border-radius: 6px;
+    color: #0d1117;
 }
 
 /* ── Server Widget (Floating) ── */
