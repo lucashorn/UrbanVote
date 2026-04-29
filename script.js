@@ -190,7 +190,7 @@ function getGear(weapon, customWeaponsArray = []) {
         return "FGHIJLMNZacefghijklOQRSTUVWX";
     }
     
-    if (weapon === "Personalizadas" && customWeaponsArray.length > 0) {
+    if (weapon === "Personalizadas") {
         let gearStr = "";
         Object.keys(customWeaponMapping).forEach(letter => {
             if (!customWeaponsArray.includes(letter)) {
@@ -523,7 +523,8 @@ function getMapcycleContent() {
                 const key = (v.customWeapons || []).sort().join("");
                 customConfigs[key] = (customConfigs[key] || 0) + 1;
             });
-            const topCustomKey = Object.entries(customConfigs).sort((a, b) => b[1] - a[1])[0][0];
+            const entries = Object.entries(customConfigs);
+            const topCustomKey = entries.length > 0 ? entries.sort((a, b) => b[1] - a[1])[0][0] : "";
             customWeaponsArray = topCustomKey ? topCustomKey.split("") : [];
         }
         

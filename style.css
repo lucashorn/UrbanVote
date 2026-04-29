@@ -679,7 +679,7 @@ table.dataTable tbody td {
 .custom-gear-modal {
     background: #161b22;
     width: 95%;
-    max-width: 1000px;
+    max-width: 1400px;
     padding: 20px;
     border: 1px solid #00ff99;
     border-radius: 10px;
@@ -687,7 +687,7 @@ table.dataTable tbody td {
 
 .custom-weapons-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(7, 1fr);
     align-items: start;
     gap: 15px;
     margin-bottom: 20px;
