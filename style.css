@@ -676,12 +676,17 @@ table.dataTable tbody td {
 
 /* Custom Weapons Modal */
 .custom-gear-modal {
+    background: #161b22;
+    width: 90%;
     max-width: 600px;
+    padding: 20px;
+    border: 1px solid #00ff99;
+    border-radius: 10px;
 }
 
 .custom-weapons-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 10px;
     margin-bottom: 20px;
     max-height: 400px;
