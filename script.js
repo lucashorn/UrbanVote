@@ -67,37 +67,54 @@ function hasAlreadyVotedForMap(map) {
     );
 }
 
-const customWeaponMapping = {
-    "F": "Beretta 92FS",
-    "G": ".50 Desert Eagle",
-    "H": "SPAS 12",
-    "I": "MP5K",
-    "J": "UMP45",
-    "K": "HK69",
-    "L": "LR300ML",
-    "M": "G36",
-    "N": "PSG-1",
-    "Z": "SR8",
-    "a": "AK-103",
-    "c": "Negev LMG",
-    "e": "Colt M4A1",
-    "f": "Glock",
-    "g": "Colt 1911",
-    "h": "MAC11",
-    "i": "FRF1",
-    "j": "Benelli",
-    "k": "P90",
-    "l": "Magnum",
-    "O": "HE Grenade",
-    "Q": "Smoke Grenade",
-    "R": "Kevlar Vest",
-    "S": "Goggles",
-    "T": "Medkit",
-    "U": "Silencer",
-    "V": "Laser Sight",
-    "W": "Helmet",
-    "X": "Extra Ammo"
+const customWeaponGroups = {
+    "Pistolas": {
+        "F": "Beretta 92FS",
+        "G": ".50 Desert Eagle",
+        "f": "Glock",
+        "g": "Colt 1911",
+        "l": "Magnum"
+    },
+    "Submetralhadoras & LMG": {
+        "I": "MP5K",
+        "J": "UMP45",
+        "h": "MAC11",
+        "k": "P90",
+        "c": "Negev LMG"
+    },
+    "Fuzis de Assalto": {
+        "L": "LR300ML",
+        "M": "G36",
+        "a": "AK-103",
+        "e": "Colt M4A1"
+    },
+    "Snipers": {
+        "N": "PSG-1",
+        "Z": "SR8",
+        "i": "FRF1"
+    },
+    "Shotguns & Explosivos": {
+        "H": "SPAS 12",
+        "j": "Benelli",
+        "K": "HK69"
+    },
+    "Granadas": {
+        "O": "HE Grenade",
+        "Q": "Smoke Grenade"
+    },
+    "Itens / Equipamentos": {
+        "R": "Kevlar Vest",
+        "W": "Helmet",
+        "T": "Medkit",
+        "X": "Extra Ammo",
+        "U": "Silencer",
+        "V": "Laser Sight",
+        "S": "Goggles"
+    }
 };
+
+const customWeaponMapping = {};
+Object.values(customWeaponGroups).forEach(group => Object.assign(customWeaponMapping, group));
 
 let selectedCustomWeapons = Object.keys(customWeaponMapping);
 
@@ -105,26 +122,42 @@ function openCustomWeaponsModal() {
     const list = document.getElementById("customWeaponsList");
     list.innerHTML = "";
     
-    Object.entries(customWeaponMapping).forEach(([letter, name]) => {
-        const label = document.createElement("label");
-        label.className = "custom-weapon-item";
+    Object.entries(customWeaponGroups).forEach(([groupName, weapons]) => {
+        const groupDiv = document.createElement("div");
+        groupDiv.className = "custom-weapon-group";
         
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.value = letter;
-        checkbox.checked = selectedCustomWeapons.includes(letter);
-        
-        checkbox.onchange = (e) => {
-            if (e.target.checked) {
-                if (!selectedCustomWeapons.includes(letter)) selectedCustomWeapons.push(letter);
-            } else {
-                selectedCustomWeapons = selectedCustomWeapons.filter(l => l !== letter);
-            }
-        };
-        
-        label.appendChild(checkbox);
-        label.appendChild(document.createTextNode(" " + name));
-        list.appendChild(label);
+        const groupTitle = document.createElement("h3");
+        groupTitle.innerText = groupName;
+        groupTitle.className = "custom-weapon-group-title";
+        groupDiv.appendChild(groupTitle);
+
+        const groupGrid = document.createElement("div");
+        groupGrid.className = "custom-weapons-subgrid";
+
+        Object.entries(weapons).forEach(([letter, name]) => {
+            const label = document.createElement("label");
+            label.className = "custom-weapon-item";
+            
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.value = letter;
+            checkbox.checked = selectedCustomWeapons.includes(letter);
+            
+            checkbox.onchange = (e) => {
+                if (e.target.checked) {
+                    if (!selectedCustomWeapons.includes(letter)) selectedCustomWeapons.push(letter);
+                } else {
+                    selectedCustomWeapons = selectedCustomWeapons.filter(l => l !== letter);
+                }
+            };
+            
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(" " + name));
+            groupGrid.appendChild(label);
+        });
+
+        groupDiv.appendChild(groupGrid);
+        list.appendChild(groupDiv);
     });
     
     document.getElementById("customWeaponsModal").style.display = "flex";
