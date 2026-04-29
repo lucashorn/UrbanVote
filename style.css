@@ -426,13 +426,15 @@ table.dataTable tbody td {
     inset: 0;
     background: rgba(0, 0, 0, 0.85);
     z-index: 1000;
+    justify-content: center;
+    align-items: center;
 }
 
 .compact-modal {
     background: #161b22;
     width: 90%;
     max-width: 500px;
-    margin: 40px auto;
+    margin: 0;
     padding: 20px;
     border: 1px solid #00ff99;
     border-radius: 10px;

@@ -68,23 +68,31 @@ function hasAlreadyVotedForMap(map) {
 }
 
 const customWeaponMapping = {
-    "F": "HK69",
-    "G": "LR300",
-    "H": "G36",
-    "I": "PSG1",
-    "J": "SR8",
-    "K": "AK103",
-    "L": "Negev",
-    "M": "M4A1",
-    "N": "Glock",
-    "O": "Colt 1911",
-    "P": "MAC11",
-    "Z": "SPAS-12",
-    "a": "MP5K",
-    "b": "UMP45",
-    "c": "P90",
-    "d": "Desert Eagle",
-    "e": "Beretta"
+    "F": "Beretta",
+    "G": "Desert Eagle",
+    "H": "SPAS-12",
+    "I": "MP5K",
+    "J": "UMP45",
+    "K": "HK69",
+    "L": "LR300",
+    "M": "G36",
+    "N": "PSG1",
+    "O": "SR8",
+    "P": "AK103",
+    "Q": "Negev",
+    "R": "M4A1",
+    "S": "Glock",
+    "T": "Colt 1911",
+    "U": "MAC11",
+    "V": "P90",
+    "Z": "Remington 870",
+    "a": "Kevlar Vest",
+    "b": "Kevlar Helmet",
+    "c": "Silencer",
+    "d": "Laser Sight",
+    "e": "Medkit",
+    "f": "Tactical Goggles",
+    "g": "Extra Ammo"
 };
 
 let selectedCustomWeapons = Object.keys(customWeaponMapping);
@@ -115,11 +123,21 @@ function openCustomWeaponsModal() {
         list.appendChild(label);
     });
     
-    document.getElementById("customWeaponsModal").style.display = "block";
+    document.getElementById("customWeaponsModal").style.display = "flex";
 }
 
-function closeCustomWeaponsModal() {
+function closeCustomWeaponsModal(accepted) {
     document.getElementById("customWeaponsModal").style.display = "none";
+    if (!accepted) {
+        document.querySelectorAll(".weapon-btn").forEach(b => {
+            if (b.dataset.weapon === previousWeapon) {
+                b.classList.add("active");
+                selectedWeapon = previousWeapon;
+            } else {
+                b.classList.remove("active");
+            }
+        });
+    }
 }
 
 function getGear(weapon, customWeaponsArray = []) {
@@ -263,14 +281,23 @@ function toggleModeInfo() {
     panel.style.display = panel.style.display === "none" ? "block" : "none";
 }
 
+let previousWeapon = "Todas as armas"; // default
+
 function setupWeaponButtons() {
     document.querySelectorAll(".weapon-btn").forEach(btn => {
         btn.onclick = () => {
+            if (btn.dataset.weapon !== "Personalizadas") {
+                previousWeapon = btn.dataset.weapon;
+            }
+
             document.querySelectorAll(".weapon-btn")
                 .forEach(b => b.classList.remove("active"));
 
             btn.classList.add("active");
             selectedWeapon = btn.dataset.weapon;
+            if (selectedWeapon === "Personalizadas") {
+                openCustomWeaponsModal();
+            }
         };
     });
 }
@@ -315,7 +342,7 @@ function openVoteModal(map) {
     document.querySelector('[data-ff="0"]')
         .classList.add("active");
 
-    document.getElementById("voteModal").style.display = "block";
+    document.getElementById("voteModal").style.display = "flex";
 }
 
 async function confirmVote() {
