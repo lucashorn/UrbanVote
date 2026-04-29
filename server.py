@@ -277,6 +277,7 @@ class VoteServer(SimpleHTTPRequestHandler):
                 "map": data["map"],
                 "mode": data["mode"],
                 "weapon": data["weapon"],
+                "customWeapons": data.get("customWeapons", []),
                 "friendlyFire": data.get("friendlyFire", "0"),
                 "date": today()
             })

@@ -67,7 +67,62 @@ function hasAlreadyVotedForMap(map) {
     );
 }
 
-function getGear(weapon) {
+const customWeaponMapping = {
+    "F": "HK69",
+    "G": "LR300",
+    "H": "G36",
+    "I": "PSG1",
+    "J": "SR8",
+    "K": "AK103",
+    "L": "Negev",
+    "M": "M4A1",
+    "N": "Glock",
+    "O": "Colt 1911",
+    "P": "MAC11",
+    "Z": "SPAS-12",
+    "a": "MP5K",
+    "b": "UMP45",
+    "c": "P90",
+    "d": "Desert Eagle",
+    "e": "Beretta"
+};
+
+let selectedCustomWeapons = Object.keys(customWeaponMapping);
+
+function openCustomWeaponsModal() {
+    const list = document.getElementById("customWeaponsList");
+    list.innerHTML = "";
+    
+    Object.entries(customWeaponMapping).forEach(([letter, name]) => {
+        const label = document.createElement("label");
+        label.className = "custom-weapon-item";
+        
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.value = letter;
+        checkbox.checked = selectedCustomWeapons.includes(letter);
+        
+        checkbox.onchange = (e) => {
+            if (e.target.checked) {
+                if (!selectedCustomWeapons.includes(letter)) selectedCustomWeapons.push(letter);
+            } else {
+                selectedCustomWeapons = selectedCustomWeapons.filter(l => l !== letter);
+            }
+        };
+        
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(" " + name));
+        list.appendChild(label);
+    });
+    
+    document.getElementById("customWeaponsModal").style.display = "block";
+}
+
+function closeCustomWeaponsModal() {
+    document.getElementById("customWeaponsModal").style.display = "none";
+}
+
+function getGear(weapon, customWeaponsArray = []) {
     if (weapon === "Somente Sniper") {
         return "FGHIJKLMacefghjklOQRSTUVWX";
     }
@@ -78,6 +133,16 @@ function getGear(weapon) {
 
     if (weapon === "Somente Granada") {
         return "FGHIJLMNZacefghijklOQRSTUVWX";
+    }
+    
+    if (weapon === "Personalizadas" && customWeaponsArray.length > 0) {
+        let gearStr = "";
+        Object.keys(customWeaponMapping).forEach(letter => {
+            if (!customWeaponsArray.includes(letter)) {
+                gearStr += letter;
+            }
+        });
+        return gearStr || "0";
     }
 
     return "0";
@@ -264,6 +329,7 @@ async function confirmVote() {
             map: selectedMap,
             mode: selectedMode,
             weapon: selectedWeapon,
+            customWeapons: selectedWeapon === "Personalizadas" ? selectedCustomWeapons : [],
             friendlyFire: selectedFriendlyFire
         })
     });
@@ -385,7 +451,19 @@ function getMapcycleContent() {
         const mostVotedMode = Object.entries(modeByMap[map]).sort((a, b) => b[1] - a[1])[0][0];
         const mostVotedWeapon = Object.entries(weaponByMap[map]).sort((a, b) => b[1] - a[1])[0][0];
         const mostVotedFF = Object.entries(ffByMap[map]).sort((a, b) => b[1] - a[1])[0][0];
-        content += `${map}\n{\n    g_gametype ${mostVotedMode}\n    roundlimit 5\n    g_gear ${getGear(mostVotedWeapon)}\n    g_friendlyfire ${mostVotedFF}\n}\n\n`;
+        
+        let customWeaponsArray = [];
+        if (mostVotedWeapon === "Personalizadas") {
+            const customConfigs = {};
+            votes.filter(v => v.map === map && v.weapon === "Personalizadas").forEach(v => {
+                const key = (v.customWeapons || []).sort().join("");
+                customConfigs[key] = (customConfigs[key] || 0) + 1;
+            });
+            const topCustomKey = Object.entries(customConfigs).sort((a, b) => b[1] - a[1])[0][0];
+            customWeaponsArray = topCustomKey ? topCustomKey.split("") : [];
+        }
+        
+        content += `${map}\n{\n    g_gametype ${mostVotedMode}\n    roundlimit 5\n    g_gear ${getGear(mostVotedWeapon, customWeaponsArray)}\n    g_friendlyfire ${mostVotedFF}\n}\n\n`;
     });
 
     return content;

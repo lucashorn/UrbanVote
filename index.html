@@ -19,18 +19,18 @@
 
         <div id="dashboard">
             <div class="dashboard-stats">
-            <div class="stat-row">
-            <label>Mapa mais votado:</label>
-            <span id="topMap">-</span>
-            </div>
-            <div class="stat-row">
-            <label>Modo mais votado:</label>
-            <span id="topMode">-</span>
-            </div>
-            <div class="stat-row">
-            <label>Total de votos:</label>
-            <span id="totalVotes">0</span>
-            </div>
+                <div class="stat-row">
+                    <label>Mapa mais votado:</label>
+                    <span id="topMap">-</span>
+                </div>
+                <div class="stat-row">
+                    <label>Modo mais votado:</label>
+                    <span id="topMode">-</span>
+                </div>
+                <div class="stat-row">
+                    <label>Total de votos:</label>
+                    <span id="totalVotes">0</span>
+                </div>
             </div>
 
             <div id="ranking"></div>
@@ -38,8 +38,8 @@
             <hr>
 
             <div class="dashboard-actions">
-            <button id="downloadMapcycle"><i class="fas fa-download"></i> Mapcycle</button>
-            <button id="resetVotesBtn"><i class="fas fa-rotate-left"></i> Resetar</button>
+                <button id="downloadMapcycle"><i class="fas fa-download"></i> Mapcycle</button>
+                <button id="resetVotesBtn"><i class="fas fa-rotate-left"></i> Resetar</button>
             </div>
         </div>
     </header>
@@ -104,6 +104,8 @@
                 <button class="weapon-btn" data-weapon="Somente Pistola">Pistola</button>
                 <button class="weapon-btn" data-weapon="Somente Granada">Lança Granada</button>
                 <button class="weapon-btn active" data-weapon="Todas as armas">Todas</button>
+                <button class="weapon-btn" data-weapon="Personalizadas"
+                    onclick="openCustomWeaponsModal()">Personalizadas</button>
             </div>
 
             <label>Friendly Fire</label>
@@ -127,9 +129,20 @@
         </div>
     </div>
 
+    <!-- Modal de Armas Personalizadas -->
+    <div id="customWeaponsModal" class="modal" style="display:none; z-index: 1001;">
+        <div class="modal-content custom-gear-modal">
+            <span class="close" onclick="closeCustomWeaponsModal()">&times;</span>
+            <h2>Selecione as Armas Permitidas</h2>
+            <p style="font-size: 0.9em; color: #aaa; margin-bottom: 10px;">Desmarque para proibir uma arma.</p>
+            <div id="customWeaponsList" class="custom-weapons-grid"></div>
+            <button id="confirmCustomWeapons" onclick="closeCustomWeaponsModal()">Salvar Armas</button>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
-    <script src="script.js?v=8"></script>
+    <script src="script.js?v=9"></script>
 </body>
 
 </html>
