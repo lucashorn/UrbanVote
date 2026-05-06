@@ -123,11 +123,11 @@ let selectedCustomWeapons = Object.keys(customWeaponMapping);
 function openCustomWeaponsModal() {
     const list = document.getElementById("customWeaponsList");
     list.innerHTML = "";
-    
+
     Object.entries(customWeaponGroups).forEach(([groupName, weapons]) => {
         const groupDiv = document.createElement("div");
         groupDiv.className = "custom-weapon-group";
-        
+
         const groupTitle = document.createElement("h3");
         groupTitle.innerText = groupName;
         groupTitle.className = "custom-weapon-group-title";
@@ -139,12 +139,12 @@ function openCustomWeaponsModal() {
         Object.entries(weapons).forEach(([letter, name]) => {
             const label = document.createElement("label");
             label.className = "custom-weapon-item";
-            
+
             const checkbox = document.createElement("input");
             checkbox.type = "checkbox";
             checkbox.value = letter;
             checkbox.checked = selectedCustomWeapons.includes(letter);
-            
+
             checkbox.onchange = (e) => {
                 if (e.target.checked) {
                     if (!selectedCustomWeapons.includes(letter)) selectedCustomWeapons.push(letter);
@@ -152,7 +152,7 @@ function openCustomWeaponsModal() {
                     selectedCustomWeapons = selectedCustomWeapons.filter(l => l !== letter);
                 }
             };
-            
+
             label.appendChild(checkbox);
             label.appendChild(document.createTextNode(" " + name));
             groupGrid.appendChild(label);
@@ -161,7 +161,7 @@ function openCustomWeaponsModal() {
         groupDiv.appendChild(groupGrid);
         list.appendChild(groupDiv);
     });
-    
+
     document.getElementById("customWeaponsModal").style.display = "flex";
 }
 
@@ -513,13 +513,13 @@ function getMapcycleContent() {
 
     const sortedMaps = Object.entries(mapCount).sort((a, b) => b[1] - a[1]);
 
-    let content = `ut4_firingrange\n{\n    g_gametype 2\n    timelimit 1\n    roundlimit 1\n    g_gear 0\n    g_friendlyfire 0\n}\n\n`;
+    let content = "";
 
     sortedMaps.forEach(([map]) => {
         const mostVotedMode = Object.entries(modeByMap[map]).sort((a, b) => b[1] - a[1])[0][0];
         const mostVotedWeapon = Object.entries(weaponByMap[map]).sort((a, b) => b[1] - a[1])[0][0];
         const mostVotedFF = Object.entries(ffByMap[map]).sort((a, b) => b[1] - a[1])[0][0];
-        
+
         let customWeaponsArray = [];
         if (mostVotedWeapon === "Personalizadas") {
             const customConfigs = {};
@@ -531,8 +531,8 @@ function getMapcycleContent() {
             const topCustomKey = entries.length > 0 ? entries.sort((a, b) => b[1] - a[1])[0][0] : "";
             customWeaponsArray = topCustomKey ? topCustomKey.split("") : [];
         }
-        
-        content += `${map}\n{\n    g_gametype ${mostVotedMode}\n    roundlimit 5\n    g_gear ${getGear(mostVotedWeapon, customWeaponsArray)}\n    g_friendlyfire ${mostVotedFF}\n}\n\n`;
+
+        content += `${map}\n{\n    g_gametype ${mostVotedMode}\n    roundlimit 5\n    g_gear "${getGear(mostVotedWeapon, customWeaponsArray)}"\n    g_friendlyfire ${mostVotedFF}\n}\n\n`;
     });
 
     return content;
