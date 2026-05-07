@@ -31,10 +31,6 @@ h1 {
 }
 
 #killRankingBtn {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    z-index: 1000;
     width: 46px;
     height: 46px;
     border-radius: 50%;
@@ -48,6 +44,7 @@ h1 {
     justify-content: center;
     box-shadow: 0 0 12px #ff444466;
     transition: background 0.2s, box-shadow 0.2s;
+    flex-shrink: 0;
 }
 
 #killRankingBtn:hover {
@@ -95,7 +92,9 @@ h1 {
     line-height: 1;
 }
 
-#killPanelClose:hover { color: #fff; }
+#killPanelClose:hover {
+    color: #fff;
+}
 
 .kill-panel-tabs {
     display: flex;
@@ -145,12 +144,26 @@ h1 {
     border-bottom: 1px solid #ffffff08;
 }
 
-#killPanelBody tbody tr:first-child td { color: #ffd700; font-weight: bold; }
-#killPanelBody tbody tr:nth-child(2) td { color: #c0c0c0; }
-#killPanelBody tbody tr:nth-child(3) td { color: #cd7f32; }
+#killPanelBody tbody tr:first-child td {
+    color: #ffd700;
+    font-weight: bold;
+}
 
-.kd-positive { color: #00ff99; }
-.kd-negative { color: #ff6666; }
+#killPanelBody tbody tr:nth-child(2) td {
+    color: #c0c0c0;
+}
+
+#killPanelBody tbody tr:nth-child(3) td {
+    color: #cd7f32;
+}
+
+.kd-positive {
+    color: #00ff99;
+}
+
+.kd-negative {
+    color: #ff6666;
+}
 
 .expand-btn {
     width: 100%;
@@ -561,7 +574,8 @@ table.dataTable tbody td {
     color: white;
 }
 
-#confirmVote, #confirmCustomWeapons {
+#confirmVote,
+#confirmCustomWeapons {
     width: 100%;
     padding: 12px;
     background: #00ff99;
@@ -625,7 +639,8 @@ table.dataTable tbody td {
     gap: 8px;
 }
 
-.btn-start, .btn-stop {
+.btn-start,
+.btn-stop {
     width: 100%;
     padding: 10px;
     border: none;
@@ -687,7 +702,7 @@ table.dataTable tbody td {
 
 .custom-weapons-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     align-items: start;
     gap: 15px;
     margin-bottom: 20px;
@@ -725,17 +740,23 @@ table.dataTable tbody td {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.9em;
+    font-size: 0.85em;
     color: #ddd;
     background: #2a2a2a;
-    padding: 8px;
+    padding: 6px 10px;
     border-radius: 4px;
     cursor: pointer;
     transition: background 0.2s;
+    border: 1px solid transparent;
+}
+
+.custom-weapon-item img {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
 
 .custom-weapon-item:hover {
     background: #333;
+    border-color: #555;
 }
 
 .custom-weapon-item input[type="checkbox"] {
@@ -743,4 +764,329 @@ table.dataTable tbody td {
     width: 16px;
     height: 16px;
     cursor: pointer;
+}
+
+/* --- New UI Elements --- */
+.floating-tools {
+    position: fixed;
+    bottom: 20px;
+    right: 220px;
+    /* À esquerda do widget do servidor */
+    display: flex;
+    gap: 12px;
+    z-index: 1000;
+}
+
+#historyBtn {
+    background: #ffaa00;
+    color: #000;
+    border: none;
+    border-radius: 50%;
+    width: 46px;
+    height: 46px;
+    font-size: 1.2em;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    transition: transform 0.2s, background 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+#historyBtn:hover {
+    transform: scale(1.1);
+    background: #ffc107;
+}
+
+#adminBtn {
+    background: #444;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 46px;
+    height: 46px;
+    font-size: 1.2em;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    transition: transform 0.2s, background 0.2s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+#adminBtn:hover {
+    transform: scale(1.1);
+    background: #666;
+}
+
+#historyPanel {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 380px;
+    height: 100vh;
+    background: #0d1117;
+    border-left: 2px solid #ffaa00;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    transition: right 0.3s ease;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.8);
+}
+
+#historyPanel.open {
+    right: 0;
+}
+
+.history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: #161b22;
+    border-bottom: 1px solid #ffaa0044;
+    color: #ffaa00;
+    font-weight: bold;
+}
+
+#historyPanelClose {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+#historyPanelClose:hover {
+    color: #fff;
+}
+
+#historyPanelBody {
+    flex: 1;
+    padding: 15px;
+    overflow-y: auto;
+}
+
+.history-item {
+    background: #161b22;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #333;
+    transition: transform 0.2s;
+    display: flex;
+    flex-direction: column;
+}
+
+.history-item:hover {
+    transform: scale(1.02);
+    border-color: #ffaa00;
+}
+
+.history-item-img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-bottom: 1px solid #333;
+}
+
+.history-item-content {
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.history-item-left h4 {
+    margin: 0 0 5px 0;
+    color: #ff3333;
+}
+
+.history-item-left p {
+    margin: 0;
+    font-size: 0.8em;
+    color: #aaa;
+}
+
+.history-item-right {
+    text-align: right;
+    font-size: 0.9em;
+}
+
+/* Profile Modal */
+.profile-modal {
+    max-width: 500px;
+    background: linear-gradient(145deg, #1e1e1e, #141414);
+}
+
+.profile-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.profile-header i {
+    font-size: 4em;
+    color: #ff3333;
+    margin-bottom: 10px;
+}
+
+.profile-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.profile-card {
+    background: #2a2a2a;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    flex: 1;
+    margin: 0 5px;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.profile-card i {
+    font-size: 1.5em;
+    color: #888;
+    margin-bottom: 5px;
+}
+
+.profile-card h3 {
+    margin: 0;
+    font-size: 0.9em;
+    color: #ccc;
+}
+
+.profile-card p {
+    margin: 5px 0 0 0;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #ff3333;
+}
+
+#profileWeaponImg {
+    filter: drop-shadow(0 0 5px rgba(255, 51, 51, 0.4));
+    margin-top: 5px;
+}
+
+.profile-relationships {
+    display: flex;
+    gap: 10px;
+}
+
+.relationship-card {
+    background: #222;
+    padding: 15px;
+    border-radius: 8px;
+    flex: 1;
+    text-align: center;
+    border-top: 3px solid #ff3333;
+}
+
+.nemesis-card {
+    border-top-color: #ffaa00;
+}
+
+.relationship-card h4 {
+    margin: 0 0 10px 0;
+    color: #aaa;
+}
+
+.relationship-card p {
+    margin: 0;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #fff;
+}
+
+.relationship-card small {
+    color: #888;
+}
+
+/* Admin Modal */
+.admin-modal {
+    max-width: 400px;
+    text-align: center;
+    background: linear-gradient(145deg, #1e1e1e, #141414);
+    border: 1px solid #444;
+    border-top: 4px solid #ffaa00;
+    padding: 25px;
+    border-radius: 10px;
+}
+
+#adminAuth {
+    margin: 20px 0;
+}
+
+#adminAuth input {
+    width: 100%;
+    padding: 10px;
+    background: #222;
+    border: 1px solid #444;
+    color: #fff;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.admin-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.admin-row input {
+    flex: 1;
+    padding: 10px;
+    background: #222;
+    border: 1px solid #444;
+    color: #fff;
+    border-radius: 4px;
+}
+
+.admin-row button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    background: #ffaa00;
+    color: #000;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.admin-row button:hover {
+    opacity: 0.8;
+}
+
+/* Live Players */
+.live-player {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px;
+    background: #2a2a2a;
+    margin-bottom: 3px;
+    border-radius: 3px;
+}
+
+.live-player-name {
+    font-weight: bold;
+}
+
+.live-player-ping {
+    color: #ffaa00;
+    font-size: 0.9em;
+}
+
+.clickable-player {
+    cursor: pointer;
+    color: #00ffcc;
+    text-decoration: underline;
+}
+
+.clickable-player:hover {
+    color: #fff;
 }

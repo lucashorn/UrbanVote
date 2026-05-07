@@ -85,6 +85,22 @@ def send_rcon(command):
     except Exception:
         pass
 
+def send_rcon_sync(command):
+    password = "coco"
+    ip = "127.0.0.1"
+    port = 27960
+    prefix = b'\xff\xff\xff\xff'
+    payload = f"rcon {password} {command}".encode('utf-8')
+    packet = prefix + payload
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.settimeout(1.0)
+            sock.sendto(packet, (ip, port))
+            data, _ = sock.recvfrom(4096)
+            return data.decode('utf-8', errors='replace').replace('\xff\xff\xff\xffprint\n', '')
+    except Exception:
+        return ""
+
 
 def load_stats():
     global global_stats
@@ -100,7 +116,11 @@ def load_stats():
         global_stats["daily_date"] = ""
     for p in ["all", "daily"]:
         if p not in global_stats:
-            global_stats[p] = {"kills": {}, "deaths": {}, "weapons": {}}
+            global_stats[p] = {"kills": {}, "deaths": {}, "weapons": {}, "relationships": {}}
+        if "relationships" not in global_stats[p]:
+            global_stats[p]["relationships"] = {}
+    if "history" not in global_stats:
+        global_stats["history"] = []
 
 def save_stats():
     with open(STATS_FILE, "w", encoding="utf-8") as f:
@@ -113,8 +133,10 @@ def parse_logs_worker():
                 today_str = datetime.now().strftime("%Y-%m-%d")
                 if global_stats["daily_date"] != today_str:
                     global_stats["daily_date"] = today_str
-                    global_stats["daily"] = {"kills": {}, "deaths": {}, "weapons": {}}
+                    global_stats["daily"] = {"kills": {}, "deaths": {}, "weapons": {}, "relationships": {}}
                     save_stats()
+            
+            current_match_kills = {}
             
             if os.path.exists(GAMES_LOG):
                 current_size = os.path.getsize(GAMES_LOG)
@@ -141,6 +163,7 @@ def parse_logs_worker():
                                 mapname = params.get('mapname', 'desconhecido').strip()
                                 gear = params.get('g_gear', '0').strip()
                                 weapons_text = decode_gear(gear)
+                                current_match_kills = {}
                                 
                                 msg = f"^2Armas Permitidas: ^7{weapons_text}"
                                 with open("bot_debug.log", "a") as dbg:
@@ -159,8 +182,8 @@ def parse_logs_worker():
                                     for _ in range(5):
                                         if current_map_name != m_name:
                                             break
-                                        send_rcon(f'bigtext "{m}"')
-                                        send_rcon(f'say "{m}"')
+                                        send_rcon(f'bigtext {m}')
+                                        send_rcon(f'say {m}')
                                         time.sleep(4)
                                 
                                 threading.Thread(target=broadcast, args=(msg, mapname), daemon=True).start()
@@ -176,9 +199,24 @@ def parse_logs_worker():
                                     time.sleep(3)
                                     for _ in range(3):
                                         # Envia mensagem privada apenas para o jogador que entrou
-                                        send_rcon(f'tell {s} "{current_weapons_msg}"')
+                                        send_rcon(f'tell {s} {current_weapons_msg}')
                                         time.sleep(3)
                                 threading.Thread(target=welcome, args=(slot,), daemon=True).start()
+                                continue
+
+                            m_shutdown = re.search(r"ShutdownGame:|Exit:", line)
+                            if m_shutdown:
+                                if current_map_name and current_match_kills:
+                                    mvp = max(current_match_kills, key=current_match_kills.get) if current_match_kills else "Ninguém"
+                                    global_stats.setdefault("history", []).append({
+                                        "map": current_map_name,
+                                        "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                                        "mvp": mvp,
+                                        "kills": current_match_kills.get(mvp, 0)
+                                    })
+                                    # Keep only last 20
+                                    global_stats["history"] = global_stats["history"][-20:]
+                                current_match_kills = {}
                                 continue
 
                             m = KILL_RE.search(line)
@@ -194,6 +232,13 @@ def parse_logs_worker():
                                     if killer not in stats["weapons"]:
                                         stats["weapons"][killer] = {}
                                     stats["weapons"][killer][weapon] = stats["weapons"][killer].get(weapon, 0) + 1
+                                    
+                                    if killer not in stats["relationships"]:
+                                        stats["relationships"][killer] = {}
+                                    stats["relationships"][killer][victim] = stats["relationships"][killer].get(victim, 0) + 1
+                                    
+                            if killer != victim and killer != "<world>":
+                                current_match_kills[killer] = current_match_kills.get(killer, 0) + 1
                         
                         if new_data:
                             global_stats["offset"] = f.tell()
@@ -279,6 +324,94 @@ class VoteServer(SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({"running": is_running}).encode("utf-8"))
             return
 
+        if self.path == "/server-live":
+            is_running = subprocess.call(["pgrep", "Quake3-UrT-Ded."], stdout=subprocess.DEVNULL) == 0
+            if not is_running:
+                self.send_response(200)
+                self.end_cors()
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"running": False, "players": [], "map": ""}).encode("utf-8"))
+                return
+                
+            status_text = send_rcon_sync("status")
+            players = []
+            map_name = ""
+            lines = status_text.split('\n')
+            for line in lines:
+                if line.startswith("map:"):
+                    map_name = line.split("map:")[1].strip()
+                elif re.match(r'^\s*\d+\s+', line):
+                    parts = line.split()
+                    if len(parts) >= 4:
+                        ping = parts[2]
+                        name = parts[3]
+                        if name != "^7":
+                            # Limpar códigos de cor para o front-end
+                            clean_name = re.sub(r'\^\d', '', name)
+                            players.append({"name": clean_name, "ping": ping, "score": parts[1]})
+            
+            self.send_response(200)
+            self.end_cors()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"running": True, "players": players, "map": map_name}).encode("utf-8"))
+            return
+
+        if parsed.path == "/profile":
+            player_name = parse_qs(parsed.query).get("player", [""])[0]
+            with stats_lock:
+                stats = global_stats["all"]
+                relationships = stats.get("relationships", {})
+                
+                # Victim favorita: quem ele mais matou
+                fav_victim = "Ninguém"
+                fav_victim_kills = 0
+                if player_name in relationships and relationships[player_name]:
+                    fav_victim = max(relationships[player_name], key=relationships[player_name].get)
+                    fav_victim_kills = relationships[player_name][fav_victim]
+                
+                # Nêmesis: quem mais matou ele
+                nemesis = "Ninguém"
+                nemesis_kills = 0
+                for k, victims in relationships.items():
+                    if player_name in victims:
+                        if victims[player_name] > nemesis_kills:
+                            nemesis = k
+                            nemesis_kills = victims[player_name]
+                
+                top_weapon = ""
+                weapons = stats.get("weapons", {}).get(player_name, {})
+                if weapons:
+                    top_weapon = max(weapons, key=weapons.get).replace("UT_MOD_", "")
+                    
+                data = {
+                    "player": player_name,
+                    "kills": stats.get("kills", {}).get(player_name, 0),
+                    "deaths": stats.get("deaths", {}).get(player_name, 0),
+                    "topWeapon": top_weapon,
+                    "favoriteVictim": fav_victim,
+                    "favoriteVictimKills": fav_victim_kills,
+                    "nemesis": nemesis,
+                    "nemesisKills": nemesis_kills
+                }
+            self.send_response(200)
+            self.end_cors()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(data).encode("utf-8"))
+            return
+
+        if self.path == "/history":
+            with stats_lock:
+                history = global_stats.get("history", [])
+            self.send_response(200)
+            self.end_cors()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(history).encode("utf-8"))
+            return
+
         return super().do_GET()
 
     def do_POST(self):
@@ -340,31 +473,42 @@ class VoteServer(SimpleHTTPRequestHandler):
                             cfg_content = f.read()
                         
                         # Substitui a linha 'map nome_do_mapa' ou 'set map nome_do_mapa'
-                        # Usando regex para encontrar a linha que começa com map ou set map no final do arquivo
-                        new_cfg_content = re.sub(r'(?m)^(map\s+)\S+', r'\1' + first_map, cfg_content)
-                        # Também tenta 'set map' se o usuário mudar o estilo
-                        new_cfg_content = re.sub(r'(?m)^(set\s+map\s+)\S+', r'\1' + first_map, new_cfg_content)
+                        # Usando regex para encontrar a linha que começa com map ou set map
+                        new_cfg_content, count1 = re.subn(r'(?m)^map\s+\S+', 'map ' + first_map, cfg_content)
+                        new_cfg_content, count2 = re.subn(r'(?m)^set\s+map\s+\S+', 'set map ' + first_map, new_cfg_content)
+
+                        # Se não encontrou nenhuma das formas, adiciona ao final
+                        if count1 == 0 and count2 == 0:
+                            new_cfg_content += f"\nmap {first_map}\n"
 
                         # Extrai g_gear e g_gametype do mapcycle para sincronizar no primeiro mapa
                         # Busca o bloco do primeiro mapa no mapcycle_data
-                        map_block_match = re.search(rf"^{first_map}\s*\n\{{(.*?)\}}", mapcycle_data, re.DOTALL | re.MULTILINE)
+                        map_block_match = re.search(rf"^{re.escape(first_map)}\s*\n\{{(.*?)\}}", mapcycle_data, re.DOTALL | re.MULTILINE)
                         if map_block_match:
                             block_content = map_block_match.group(1)
-                            gear_match = re.search(r"g_gear\s+(\S+)", block_content)
+                            gear_match = re.search(r"g_gear\s+\"?(.*?)\"?(?:\n|$)", block_content)
                             gametype_match = re.search(r"g_gametype\s+(\d+)", block_content)
                             ff_match = re.search(r"g_friendlyfire\s+(\d+)", block_content)
+                            roundlimit_match = re.search(r"roundlimit\s+(\d+)", block_content)
                             
                             if gear_match:
                                 gear_val = gear_match.group(1)
-                                new_cfg_content = re.sub(r'(?m)^(set\s+)?g_gear\s+\S+', r'set g_gear "' + gear_val + '"', new_cfg_content)
+                                new_cfg_content, c = re.subn(r'(?m)^(set\s+)?g_gear\s+.*', r'set g_gear "' + gear_val + '"', new_cfg_content)
+                                if c == 0: new_cfg_content += f'\nset g_gear "{gear_val}"\n'
                             if gametype_match:
                                 gt_val = gametype_match.group(1)
-                                new_cfg_content = re.sub(r'(?m)^(set\s+)?g_gametype\s+\d+', r'set g_gametype ' + gt_val, new_cfg_content)
+                                new_cfg_content, c = re.subn(r'(?m)^(set\s+)?g_gametype\s+\d+', r'set g_gametype ' + gt_val, new_cfg_content)
+                                if c == 0: new_cfg_content += f'\nset g_gametype {gt_val}\n'
                             if ff_match:
                                 ff_val = ff_match.group(1)
-                                new_cfg_content = re.sub(r'(?m)^(set\s+)?g_friendlyfire\s+\d+', r'set g_friendlyfire ' + ff_val, new_cfg_content)
+                                new_cfg_content, c = re.subn(r'(?m)^(set\s+)?g_friendlyfire\s+\d+', r'set g_friendlyfire ' + ff_val, new_cfg_content)
+                                if c == 0: new_cfg_content += f'\nset g_friendlyfire {ff_val}\n'
+                            if roundlimit_match:
+                                rl_val = roundlimit_match.group(1)
+                                new_cfg_content, c = re.subn(r'(?m)^(set\s+)?roundlimit\s+\d+', r'set roundlimit ' + rl_val, new_cfg_content)
+                                if c == 0: new_cfg_content += f'\nset roundlimit {rl_val}\n'
 
-                            # Removemos o sv_joinmessage para não causar conflito ou mensagens antigas
+                            # Removemos o sv_joinmessage para não causar conflito
                             new_cfg_content = re.sub(r'(?m)^(set\s+)?sv_joinmessage\s+".*?"', r'set sv_joinmessage ""', new_cfg_content)
 
                         with open(cfg_path, "w", encoding="utf-8") as f:
@@ -393,6 +537,42 @@ class VoteServer(SimpleHTTPRequestHandler):
                 # Mata o script de loop e o processo do jogo
                 os.system("pkill -f start.sh")
                 os.system("pkill -f Quake3-UrT-Ded.x86_64")
+
+                self.send_response(200)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(b"OK")
+            except Exception as e:
+                self.send_response(500)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(str(e).encode("utf-8"))
+            return
+            
+        if self.path == "/admin":
+            try:
+                content_length = int(self.headers["Content-Length"])
+                raw = self.rfile.read(content_length)
+                data = json.loads(raw.decode("utf-8"))
+
+                if data.get("password") != "coco":
+                    self.send_response(403)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write("Senha inválida".encode("utf-8"))
+                    return
+                
+                cmd_type = data.get("cmd_type")
+                if cmd_type == "kick":
+                    player = data.get("player")
+                    send_rcon(f"kick {player}")
+                elif cmd_type == "map":
+                    map_name = data.get("map")
+                    send_rcon(f"map {map_name}")
+                elif cmd_type == "say":
+                    msg = data.get("msg")
+                    send_rcon(f"bigtext {msg}")
+                    send_rcon(f"say {msg}")
 
                 self.send_response(200)
                 self.end_cors()

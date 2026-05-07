@@ -8,8 +8,8 @@ localStorage.setItem("browserId", browserId);
 
 const maps = [
     "ut4_abbey", "ut4_algiers",
-    "ut4_austria", "ut4_bohemia", "ut4_casa", "ut4_cascade",
-    "ut4_dressingroom", "ut4_eagle", "ut4_firingrange", "ut4_elgin", "ut4_ghosttown_rc4",
+    "ut4_austria", "ut4_bohemia", "ut4_casa", "ut4_cascade", "ut4_docks",
+    "ut4_dressingroom", "ut4_eagle", "ut4_firingrange", "ut4_elgin", "ut4_ghosttown",
     "ut4_herring", "ut4_killroom", "ut4_kingdom", "ut4_kingpin",
     "ut4_mandolin", "ut4_mykonos_a17", "ut4_oildepot", "ut4_paris", "ut4_prague", "ut4_prominence",
     "ut4_raiders", "ut4_ramelle", "ut4_ricochet", "ut4_riyadh",
@@ -113,6 +113,39 @@ const customWeaponGroups = {
     }
 };
 
+const weaponImages = {
+    "Beretta": "beretta", "Beretta 92FS": "beretta",
+    "Desert Eagle": "deagle", ".50 Desert Eagle": "deagle",
+    "SPAS": "spas12", "SPAS 12": "spas12",
+    "MP5K": "mp5k",
+    "UMP45": "ump45",
+    "HK69": "hk69",
+    "LR300": "lr300", "LR300ML": "lr300",
+    "G36": "g36",
+    "PSG-1": "psg1", "PSG1": "psg1",
+    "HE Grenade": "hegrenade",
+    "Knife": "knife",
+    "Smoke Grenade": "smokegrenade",
+    "Kevlar Vest": "vest",
+    "Goggles": "goggles",
+    "Medkit": "medkit",
+    "Silencer": "silencer",
+    "Laser": "laser", "Laser Sight": "laser",
+    "Helmet": "helmet",
+    "Extra Ammo": "extraammo",
+    "SR8": "sr8",
+    "AK-103": "ak103",
+    "Negev": "negev", "Negev LMG": "negev",
+    "M4A1": "m4a1", "Colt M4A1": "m4a1",
+    "Glock": "glock",
+    "Colt 1911": "colt1911",
+    "MAC11": "mac11",
+    "FRF1": "frf1",
+    "Benelli": "benelli",
+    "P90": "p90",
+    "Magnum": "magnum"
+};
+
 const customWeaponMapping = {};
 Object.values(customWeaponGroups).forEach(group => Object.assign(customWeaponMapping, group));
 
@@ -154,7 +187,19 @@ function openCustomWeaponsModal() {
             };
 
             label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(" " + name));
+            
+            const slug = weaponImages[name];
+            if (slug) {
+                const img = document.createElement("img");
+                img.src = `weapons/${slug}.webp`;
+                img.style.width = "40px";
+                img.style.height = "auto";
+                img.style.margin = "0 8px";
+                img.style.pointerEvents = "none";
+                label.appendChild(img);
+            }
+
+            label.appendChild(document.createTextNode(name));
             groupGrid.appendChild(label);
         });
 
@@ -223,7 +268,7 @@ const mapImages = {
     "ut4_firingrange": "Firingrange.jpg",
     "ut4_elgin": "Elgin.jpg",
     "ut4_herring": "Herring.jpg",
-    "ut4_ghosttown_rc4": "Ghosttown.jpg",
+    "ut4_ghosttown": "Ghosttown.jpg",
     "ut4_killroom": "Killroom.jpg",
     "ut4_kingdom": "Kingdom.jpg",
     "ut4_kingpin": "Kingpin.jpg",
@@ -554,23 +599,46 @@ function downloadMapcycle() {
 
 async function updateServerStatus() {
     try {
-        const response = await fetch(`${API_URL}/server-status`);
+        const response = await fetch(`${API_URL}/server-live`);
         const data = await response.json();
         const dot = document.getElementById("serverStatusDot");
         const text = document.getElementById("serverStatusText");
         const startBtn = document.getElementById("startServerBtn");
         const stopBtn = document.getElementById("stopServerBtn");
+        const details = document.getElementById("liveStatusDetails");
+        const mapNameSpan = document.getElementById("liveMapName");
+        const playerCountSpan = document.getElementById("livePlayerCount");
+        const playerListDiv = document.getElementById("livePlayerList");
 
         if (data.running) {
             dot.className = "status-dot online";
             text.innerText = "Servidor Online";
             startBtn.style.display = "none";
             stopBtn.style.display = "inline-block";
+            
+            details.style.display = "block";
+            mapNameSpan.innerText = data.map || "Desconhecido";
+            playerCountSpan.innerText = `${data.players.length}/12`;
+            
+            if (data.players.length === 0) {
+                playerListDiv.innerHTML = "<p style='color:#888; font-size:0.9em;'>Nenhum jogador online.</p>";
+            } else {
+                playerListDiv.innerHTML = data.players.map(p => `
+                    <div class="live-player">
+                        <span class="live-player-name clickable-player" onclick="openProfile('${escHtml(p.name)}')">${escHtml(p.name)}</span>
+                        <span>
+                            <span style="color:#fff; margin-right:5px;">${escHtml(p.score)} pts</span>
+                            <span class="live-player-ping">${escHtml(p.ping)}ms</span>
+                        </span>
+                    </div>
+                `).join("");
+            }
         } else {
             dot.className = "status-dot offline";
             text.innerText = "Servidor Offline";
             startBtn.style.display = "inline-block";
             stopBtn.style.display = "none";
+            details.style.display = "none";
         }
         return data.running;
     } catch (e) {
@@ -714,7 +782,7 @@ function buildKillTable(data) {
         const kdClass = parseFloat(kd) >= 1 ? "kd-positive" : "kd-negative";
         return `<tr>
             <td>${i + 1}</td>
-            <td>${escHtml(p.player)}</td>
+            <td><span class="clickable-player" onclick="openProfile('${escHtml(p.player)}')">${escHtml(p.player)}</span></td>
             <td>${escHtml(p.kills)}</td>
             <td>${escHtml(p.deaths)}</td>
             <td class="${kdClass}">${escHtml(kd)}</td>
@@ -739,6 +807,9 @@ async function fetchKills(period = activeKillTab) {
 }
 
 document.getElementById("killRankingBtn").onclick = () => {
+    document.getElementById("historyPanel").classList.remove("open");
+    document.getElementById("historyBtn").style.display = "flex";
+    
     document.getElementById("killRankingPanel").classList.add("open");
     document.getElementById("killRankingBtn").style.display = "none";
     fetchKills(activeKillTab);
@@ -747,6 +818,144 @@ document.getElementById("killRankingBtn").onclick = () => {
 document.getElementById("killPanelClose").onclick = () => {
     document.getElementById("killRankingPanel").classList.remove("open");
     document.getElementById("killRankingBtn").style.display = "flex";
+};
+
+// --- Histórico Panel ---
+function formatDateToBR(dateStr) {
+    if (!dateStr) return "";
+    const parts = dateStr.split(" ");
+    if (parts.length !== 2) return dateStr;
+    const dateParts = parts[0].split("-");
+    if (dateParts.length !== 3) return dateStr;
+    return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]} ${parts[1]}`;
+}
+
+document.getElementById("historyBtn").onclick = async () => {
+    document.getElementById("killRankingPanel").classList.remove("open");
+    document.getElementById("killRankingBtn").style.display = "flex";
+
+    document.getElementById("historyPanel").classList.add("open");
+    document.getElementById("historyBtn").style.display = "none";
+    const el = document.getElementById("historyPanelBody");
+    try {
+        const res = await fetch(`${API_URL}/history`);
+        const data = await res.json();
+        if (!data.length) {
+            el.innerHTML = "<p style='color:#888;text-align:center;'>Nenhum histórico ainda.</p>";
+            return;
+        }
+        el.innerHTML = data.reverse().map(h => `
+            <div class="history-item">
+                <img class="history-item-img" src="${getMapImage(h.map)}" onerror="this.src='img/placeholder.jpg'">
+                <div class="history-item-content">
+                    <div class="history-item-left">
+                        <h4 style="margin:0; color:#ffaa00">${escHtml(h.map)}</h4>
+                        <small style="color:#888">${escHtml(formatDateToBR(h.date))}</small>
+                    </div>
+                    <div class="history-item-right">
+                        <span style="color:#00ffcc; font-weight:bold">${escHtml(h.mvp)}</span><br>
+                        <small style="color:#888">${escHtml(h.kills)} kills</small>
+                    </div>
+                </div>
+            </div>
+        `).join("");
+    } catch (e) {
+        el.innerHTML = "<p style='color:#ff3333;'>Erro ao carregar histórico.</p>";
+    }
+};
+
+document.getElementById("historyPanelClose").onclick = () => {
+    document.getElementById("historyPanel").classList.remove("open");
+    document.getElementById("historyBtn").style.display = "flex";
+};
+
+// --- Profile Modal ---
+async function openProfile(playerName) {
+    const modal = document.getElementById("profileModal");
+    modal.style.display = "flex";
+    document.getElementById("profileName").innerText = playerName;
+    
+    try {
+        const res = await fetch(`${API_URL}/profile?player=${encodeURIComponent(playerName)}`);
+        const data = await res.json();
+        
+        document.getElementById("profileKills").innerText = data.kills;
+        document.getElementById("profileDeaths").innerText = data.deaths;
+        
+        const topWeapon = data.topWeapon || "N/A";
+        document.getElementById("profileWeapon").innerText = topWeapon;
+        
+        const slug = weaponImages[topWeapon];
+        const imgEl = document.getElementById("profileWeaponImg");
+        if (slug) {
+            imgEl.src = `weapons/${slug}.webp`;
+            imgEl.style.display = "block";
+        } else {
+            imgEl.style.display = "none";
+        }
+        document.getElementById("profileVictim").innerText = data.favoriteVictim;
+        document.getElementById("profileVictimKills").innerText = `${data.favoriteVictimKills} kills`;
+        document.getElementById("profileNemesis").innerText = data.nemesis;
+        document.getElementById("profileNemesisKills").innerText = `${data.nemesisKills} mortes`;
+    } catch(e) {
+        console.error(e);
+        document.getElementById("profileName").innerText = "Erro ao carregar";
+    }
+}
+
+document.getElementById("profileClose").onclick = () => {
+    document.getElementById("profileModal").style.display = "none";
+};
+
+// --- Admin Panel ---
+document.getElementById("adminBtn").onclick = () => {
+    document.getElementById("adminModal").style.display = "flex";
+};
+
+document.getElementById("adminClose").onclick = () => {
+    document.getElementById("adminModal").style.display = "none";
+};
+
+document.getElementById("adminPassword").oninput = (e) => {
+    if (e.target.value.length > 0) {
+        document.getElementById("adminActions").style.opacity = "1";
+        document.getElementById("adminActions").style.pointerEvents = "auto";
+    } else {
+        document.getElementById("adminActions").style.opacity = "0.5";
+        document.getElementById("adminActions").style.pointerEvents = "none";
+    }
+};
+
+async function execAdminCmd(cmdType, payload) {
+    const pass = document.getElementById("adminPassword").value;
+    const body = { password: pass, cmd_type: cmdType, ...payload };
+    
+    try {
+        const res = await fetch(`${API_URL}/admin`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        if (!res.ok) alert("Erro: " + await res.text());
+        else {
+            alert("Comando executado!");
+            if (cmdType === "map") document.getElementById("adminMapInput").value = "";
+            if (cmdType === "kick") document.getElementById("adminKickInput").value = "";
+            if (cmdType === "say") document.getElementById("adminSayInput").value = "";
+        }
+    } catch(e) {
+        alert("Erro na requisição: " + e.message);
+    }
+}
+
+document.getElementById("adminMapBtn").onclick = () => {
+    execAdminCmd("map", { map: document.getElementById("adminMapInput").value });
+};
+document.getElementById("adminKickBtn").onclick = () => {
+    execAdminCmd("kick", { player: document.getElementById("adminKickInput").value });
+};
+document.getElementById("adminSayBtn").onclick = () => {
+    execAdminCmd("say", { msg: document.getElementById("adminSayInput").value });
 };
 
 document.querySelectorAll(".kill-tab").forEach(btn => {
@@ -760,9 +969,11 @@ document.querySelectorAll(".kill-tab").forEach(btn => {
 
 document.getElementById("resetVotesBtn").onclick = resetVotesManual;
 
-document.querySelector(".close").onclick = () => {
-    document.getElementById("voteModal").style.display = "none";
-};
+document.querySelectorAll(".close").forEach(c => {
+    c.onclick = function() {
+        this.parentElement.parentElement.style.display = "none";
+    }
+});
 
 document.getElementById("confirmVote").onclick = confirmVote;
 document.getElementById("downloadMapcycle").onclick = downloadMapcycle;
@@ -775,11 +986,11 @@ setupWeaponButtons();
 setupFriendlyFireButtons();
 fetchVotes();
 
-setInterval(updateServerStatus, 5000);
+setInterval(updateServerStatus, 15000); // Polling cada 15s pro live server
 updateServerStatus();
 
 setInterval(() => {
     if (document.getElementById("killRankingPanel").classList.contains("open")) {
         fetchKills(activeKillTab);
     }
-}, 5000);
+}, 15000);

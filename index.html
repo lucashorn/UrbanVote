@@ -44,9 +44,19 @@
         </div>
     </header>
 
-    <button id="killRankingBtn" title="Ranking de Kills">
-        <i class="fas fa-skull"></i>
-    </button>
+    <div class="floating-tools">
+        <button id="killRankingBtn" title="Ranking de Kills">
+            <i class="fas fa-skull"></i>
+        </button>
+
+        <button id="historyBtn" title="Histórico de Partidas">
+            <i class="fas fa-history"></i>
+        </button>
+
+        <button id="adminBtn" title="Painel de Administração">
+            <i class="fas fa-lock"></i>
+        </button>
+    </div>
 
     <div id="killRankingPanel">
         <div class="kill-panel-header">
@@ -59,6 +69,16 @@
         </div>
         <div id="killPanelBody">
             <p style="color:#888;text-align:center;padding:20px">Carregando...</p>
+        </div>
+    </div>
+
+    <div id="historyPanel">
+        <div class="history-header">
+            <span><i class="fas fa-history"></i> Últimas Partidas</span>
+            <button id="historyPanelClose">&times;</button>
+        </div>
+        <div id="historyPanelBody">
+            <p style="color:#888;text-align:center;padding:20px">Carregando histórico...</p>
         </div>
     </div>
 
@@ -122,6 +142,15 @@
             <span id="serverStatusDot" class="status-dot offline"></span>
             <span id="serverStatusText">Servidor Offline</span>
         </div>
+        <div id="liveStatusDetails"
+            style="display:none; margin-top:10px; font-size:0.85em; border-top:1px solid #333; padding-top:10px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                <strong style="color:#00ffcc"><i class="fas fa-map"></i> <span id="liveMapName">-</span></strong>
+                <span id="livePlayerCount">0/12</span>
+            </div>
+            <div id="livePlayerList" style="max-height: 100px; overflow-y:auto;">
+            </div>
+        </div>
         <div class="server-widget-actions">
             <button id="startServerBtn" class="btn-start"><i class="fas fa-play"></i> Iniciar</button>
             <button id="stopServerBtn" class="btn-stop" style="display:none"><i class="fas fa-stop"></i> Parar</button>
@@ -139,9 +168,81 @@
         </div>
     </div>
 
+    <!-- Modal de Perfil Individual -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content profile-modal">
+            <span class="close" id="profileClose">&times;</span>
+            <div class="profile-header">
+                <i class="fas fa-user-circle"></i>
+                <h2 id="profileName">Carregando...</h2>
+            </div>
+            <div class="profile-stats">
+                <div class="profile-card">
+                    <i class="fas fa-crosshairs"></i>
+                    <h3>Kills</h3>
+                    <p id="profileKills">-</p>
+                </div>
+                <div class="profile-card">
+                    <i class="fas fa-skull"></i>
+                    <h3>Deaths</h3>
+                    <p id="profileDeaths">-</p>
+                </div>
+                <div class="profile-card">
+                    <i class="fas fa-gun"></i>
+                    <h3>Arma Favorita</h3>
+                    <div style="height: 40px; display: flex; align-items: center; justify-content: center;">
+                        <img id="profileWeaponImg" src="" style="max-width:80px; max-height: 40px; display:none;">
+                    </div>
+                    <p id="profileWeapon">-</p>
+                </div>
+            </div>
+            <div class="profile-relationships">
+                <div class="relationship-card victim-card">
+                    <h4>Vítima Favorita</h4>
+                    <p id="profileVictim">-</p>
+                    <small id="profileVictimKills">0 kills</small>
+                </div>
+                <div class="relationship-card nemesis-card">
+                    <h4>Nêmesis</h4>
+                    <p id="profileNemesis">-</p>
+                    <small id="profileNemesisKills">0 mortes</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Admin -->
+    <div id="adminModal" class="modal">
+        <div class="modal-content admin-modal">
+            <span class="close" id="adminClose">&times;</span>
+            <h2><i class="fas fa-lock"></i> Painel de Controle</h2>
+            <div id="adminAuth">
+                <label>Senha de Administração:</label>
+                <input type="password" id="adminPassword" placeholder="Senha do RCON">
+            </div>
+            <div id="adminActions" style="opacity: 0.5; pointer-events: none;">
+                <hr>
+                <div class="admin-row">
+                    <input type="text" id="adminMapInput" placeholder="Nome do mapa (ex: ut4_abbey)">
+                    <button id="adminMapBtn"><i class="fas fa-map"></i> Trocar Mapa</button>
+                </div>
+                <div class="admin-row">
+                    <input type="text" id="adminKickInput" placeholder="ID ou Nome do jogador">
+                    <button id="adminKickBtn" style="background:#ff4444"><i class="fas fa-user-slash"></i>
+                        Expulsar</button>
+                </div>
+                <div class="admin-row">
+                    <input type="text" id="adminSayInput" placeholder="Mensagem para aparecer na tela">
+                    <button id="adminSayBtn" style="background:#00ccff; color:#000"><i class="fas fa-bullhorn"></i>
+                        Anunciar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
-    <script src="script.js?v=9"></script>
+    <script src="script.js?v=11"></script>
 </body>
 
 </html>
