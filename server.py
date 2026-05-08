@@ -6,8 +6,11 @@ import socket
 import subprocess
 import threading
 import time
+import sqlite3
+import base64
+import random
 from datetime import datetime
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
 
 HOST = "0.0.0.0"
 PORT = 8085
@@ -15,6 +18,101 @@ BASE_DIR = "/var/www/html/urban"
 VOTES_FILE = os.path.join(BASE_DIR, "votes.json")
 GAMES_LOG = "/home/lucas/urbanterror43/q3ut4/games.log"
 STATS_FILE = os.path.join(BASE_DIR, "kills_stats.json")
+DB_FILE = "/var/www/html/urban/urban.db"
+AVATARS_DIR = "/var/www/html/urban/avatars"
+
+if not os.path.exists(AVATARS_DIR):
+    os.makedirs(AVATARS_DIR)
+
+def clean_name(name):
+    """Remove códigos de cores do Urban Terror (^1, ^2, etc)"""
+    if not name: return ""
+    return re.sub(r'\^\d', '', name)
+
+def init_db():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS profiles
+                 (name TEXT PRIMARY KEY, avatar_url TEXT, auth_code TEXT, auth_expiry DATETIME)''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def get_player_avatar(name):
+    try:
+        clean = clean_name(name)
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        c.execute("SELECT avatar_url FROM profiles WHERE name = ?", (clean,))
+        res = c.fetchone()
+        conn.close()
+        return res[0] if res else None
+    except:
+        return None
+
+def set_auth_code(name, code):
+    clean = clean_name(name)
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    expiry = datetime.now().timestamp() + 600
+    # Usa INSERT OR REPLACE mas preserva avatar_url se já existir
+    c.execute("""
+        INSERT INTO profiles (name, auth_code, auth_expiry) 
+        VALUES (?, ?, ?)
+        ON CONFLICT(name) DO UPDATE SET 
+            auth_code = excluded.auth_code,
+            auth_expiry = excluded.auth_expiry
+    """, (clean, code, expiry))
+    conn.commit()
+    conn.close()
+
+def verify_auth_code(name, code):
+    clean = clean_name(name)
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT auth_code, auth_expiry FROM profiles WHERE name = ?", (clean,))
+    res = c.fetchone()
+    conn.close()
+    
+    print(f"[DEBUG] Auth attempt: name='{name}', clean='{clean}', code='{code}'")
+    if res:
+        saved_code, expiry = res
+        now = datetime.now().timestamp()
+        print(f"[DEBUG] DB record: saved_code='{saved_code}', expiry={expiry}, now={now}")
+        if str(saved_code) == str(code) and now < float(expiry):
+            return True
+        else:
+            print(f"[DEBUG] Validation failed: code_match={str(saved_code) == str(code)}, time_ok={now < float(expiry)}")
+    else:
+        print(f"[DEBUG] No record found for '{clean}'")
+    return False
+
+def save_avatar(name, b64_data):
+    if not b64_data: return None
+    try:
+        clean = clean_name(name)
+        header, data = b64_data.split(",", 1)
+        ext = "jpg"
+        if "png" in header: ext = "png"
+        elif "webp" in header: ext = "webp"
+        
+        filename = f"{clean.replace(' ', '_')}_{int(time.time())}.{ext}"
+        filepath = os.path.join(AVATARS_DIR, filename)
+        
+        with open(filepath, "wb") as f:
+            f.write(base64.b64decode(data))
+        
+        url = f"avatars/{filename}"
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        c.execute("UPDATE profiles SET avatar_url = ? WHERE name = ?", (url, clean))
+        conn.commit()
+        conn.close()
+        return url
+    except Exception as e:
+        print("Erro ao salvar avatar:", e)
+        return None
 
 stats_lock = threading.Lock()
 global_stats = {}
@@ -44,9 +142,8 @@ def decode_gear(gear_str):
     allowed = []
     for letter in OFFICIAL_GEAR_SEQUENCE:
         if letter not in gear_str and letter in WEAPONS_MAP:
-            allowed.append(letter) # Usamos a letra para comparar com os perfis
+            allowed.append(letter)
             
-    # Perfis conhecidos
     profiles = {
         "Somente Pistola": set("FGfgl"),
         "Somente Sniper": set("NZi"),
@@ -63,7 +160,6 @@ def decode_gear(gear_str):
     if not allowed:
         return "Somente Faca/Kevlar"
     
-    # Traduz letras para nomes para o caso geral
     allowed_names = [WEAPONS_MAP[l] for l in allowed]
     
     if len(allowed_names) > 8:
@@ -165,7 +261,7 @@ def parse_logs_worker():
                                 weapons_text = decode_gear(gear)
                                 current_match_kills = {}
                                 
-                                msg = f"^2Armas Permitidas: ^7{weapons_text}"
+                                msg = f"^2Armas: ^7{weapons_text}"
                                 with open("bot_debug.log", "a") as dbg:
                                     dbg.write(f"[{datetime.now()}] InitGame: {mapname} | Gear: {gear} | Decoded: {weapons_text}\n")
                                 
@@ -182,8 +278,8 @@ def parse_logs_worker():
                                     for _ in range(5):
                                         if current_map_name != m_name:
                                             break
-                                        send_rcon(f'bigtext {m}')
-                                        send_rcon(f'say {m}')
+                                        send_rcon(f'bigtext "{m}"')
+                                        send_rcon(f'say "{m}"')
                                         time.sleep(4)
                                 
                                 threading.Thread(target=broadcast, args=(msg, mapname), daemon=True).start()
@@ -199,9 +295,19 @@ def parse_logs_worker():
                                     time.sleep(3)
                                     for _ in range(3):
                                         # Envia mensagem privada apenas para o jogador que entrou
-                                        send_rcon(f'tell {s} {current_weapons_msg}')
+                                        send_rcon(f'tell {s} "{current_weapons_msg}"')
                                         time.sleep(3)
                                 threading.Thread(target=welcome, args=(slot,), daemon=True).start()
+                                continue
+
+                            # Detect chat commands: say: ID Name: text
+                            m_chat = re.search(r"say:\s+(\d+)\s+(.*?):\s+(!\w+)", line)
+                            if m_chat:
+                                pid, pname, cmd = m_chat.group(1), m_chat.group(2), m_chat.group(3)
+                                if cmd == "!perfil" or cmd == "!auth" or cmd == "!foto":
+                                    code = str(random.randint(1000, 9999))
+                                    set_auth_code(pname, code)
+                                    send_rcon_sync(f'tell {pid} "^2[SITE] ^7Seu codigo: ^3{code} ^7(Expira em 10 min)"')
                                 continue
 
                             m_shutdown = re.search(r"ShutdownGame:|Exit:", line)
@@ -291,7 +397,14 @@ class VoteServer(SimpleHTTPRequestHandler):
                     weapons = stats_to_use["weapons"].get(p, {})
                     if weapons:
                         top_weapon = max(weapons, key=weapons.get).replace("UT_MOD_", "")
-                    result.append({"player": p, "kills": k, "deaths": d, "topWeapon": top_weapon})
+                    
+                    result.append({
+                        "player": p, 
+                        "kills": k, 
+                        "deaths": d, 
+                        "topWeapon": top_weapon,
+                        "avatar": get_player_avatar(p)
+                    })
                 result.sort(key=lambda x: x["kills"], reverse=True)
 
             self.send_response(200)
@@ -393,7 +506,8 @@ class VoteServer(SimpleHTTPRequestHandler):
                     "favoriteVictim": fav_victim,
                     "favoriteVictimKills": fav_victim_kills,
                     "nemesis": nemesis,
-                    "nemesisKills": nemesis_kills
+                    "nemesisKills": nemesis_kills,
+                    "avatar": get_player_avatar(player_name)
                 }
             self.send_response(200)
             self.end_cors()
@@ -434,6 +548,59 @@ class VoteServer(SimpleHTTPRequestHandler):
                 self.end_cors()
                 self.end_headers()
                 self.wfile.write(b"OK")
+            except Exception as e:
+                self.send_response(500)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(str(e).encode("utf-8"))
+            return
+
+        if self.path == "/claim-profile":
+            try:
+                content_length = int(self.headers["Content-Length"])
+                data = json.loads(self.rfile.read(content_length).decode("utf-8"))
+                name, code = data.get("name"), data.get("code")
+                
+                if verify_auth_code(name, code):
+                    self.send_response(200)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"OK")
+                else:
+                    self.send_response(403)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Codigo invalido ou expirado")
+            except Exception as e:
+                self.send_response(500)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(str(e).encode("utf-8"))
+            return
+
+        if self.path == "/upload-avatar":
+            try:
+                content_length = int(self.headers["Content-Length"])
+                data = json.loads(self.rfile.read(content_length).decode("utf-8"))
+                name, code, b64_image = data.get("name"), data.get("code"), data.get("image")
+                
+                if verify_auth_code(name, code):
+                    url = save_avatar(name, b64_image)
+                    if url:
+                        self.send_response(200)
+                        self.end_cors()
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"url": url}).encode("utf-8"))
+                    else:
+                        self.send_response(500)
+                        self.end_cors()
+                        self.end_headers()
+                        self.wfile.write(b"Erro ao processar imagem")
+                else:
+                    self.send_response(403)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Acesso negado")
             except Exception as e:
                 self.send_response(500)
                 self.end_cors()
@@ -571,8 +738,8 @@ class VoteServer(SimpleHTTPRequestHandler):
                     send_rcon(f"map {map_name}")
                 elif cmd_type == "say":
                     msg = data.get("msg")
-                    send_rcon(f"bigtext {msg}")
-                    send_rcon(f"say {msg}")
+                    send_rcon(f'bigtext "{msg}"')
+                    send_rcon(f'say "{msg}"')
 
                 self.send_response(200)
                 self.end_cors()

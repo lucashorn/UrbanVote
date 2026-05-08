@@ -114,16 +114,16 @@ const customWeaponGroups = {
 };
 
 const weaponImages = {
-    "Beretta": "beretta", "Beretta 92FS": "beretta",
-    "Desert Eagle": "deagle", ".50 Desert Eagle": "deagle",
-    "SPAS": "spas12", "SPAS 12": "spas12",
-    "MP5K": "mp5k",
-    "UMP45": "ump45",
-    "HK69": "hk69",
-    "LR300": "lr300", "LR300ML": "lr300",
-    "G36": "g36",
-    "PSG-1": "psg1", "PSG1": "psg1",
-    "HE Grenade": "hegrenade",
+    "Beretta": "beretta", "Beretta 92FS": "beretta", "BERETTA": "beretta",
+    "Desert Eagle": "deagle", ".50 Desert Eagle": "deagle", "DEAGLE": "deagle",
+    "SPAS": "spas12", "SPAS 12": "spas12", "Franchi SPAS-12": "spas12", "SPAS-12": "spas12", "SPAS": "spas12",
+    "MP5K": "mp5k", "H&K MP5K": "mp5k", "MP5K": "mp5k",
+    "UMP45": "ump45", "H&K UMP 45": "ump45", "UMP 45": "ump45", "UMP45": "ump45",
+    "HK69": "hk69", "H&K 69": "hk69", "H&K69": "hk69",
+    "LR300": "lr300", "LR300ML": "lr300", "ZM LR 300": "lr300", "ZM LR300": "lr300",
+    "G36": "g36", "H&K G-36": "g36", "H&K G36": "g36", "G36": "g36",
+    "PSG-1": "psg1", "PSG1": "psg1", "6. PSG-1": "psg1", "PSG1": "psg1",
+    "HE Grenade": "hegrenade", "HEGRENADE": "hegrenade",
     "Knife": "knife",
     "Smoke Grenade": "smokegrenade",
     "Kevlar Vest": "vest",
@@ -133,17 +133,18 @@ const weaponImages = {
     "Laser": "laser", "Laser Sight": "laser",
     "Helmet": "helmet",
     "Extra Ammo": "extraammo",
-    "SR8": "sr8",
-    "AK-103": "ak103",
-    "Negev": "negev", "Negev LMG": "negev",
-    "M4A1": "m4a1", "Colt M4A1": "m4a1",
-    "Glock": "glock",
-    "Colt 1911": "colt1911",
-    "MAC11": "mac11",
-    "FRF1": "frf1",
-    "Benelli": "benelli",
-    "P90": "p90",
-    "Magnum": "magnum"
+    "SR8": "sr8", "SR-8": "sr8",
+    "AK-103": "ak103", "AK 103": "ak103", "AK103": "ak103",
+    "Negev": "negev", "Negev LMG": "negev", "IMI NEGEV": "negev",
+    "M4A1": "m4a1", "Colt M4A1": "m4a1", "M4": "m4a1", "m4": "m4a1", "M4A1": "m4a1",
+    "Glock": "glock", "GLOCK": "glock",
+    "Colt 1911": "colt1911", "COLT1911": "colt1911",
+    "MAC11": "mac11", "MAC 11": "mac11",
+    "FRF1": "frf1", "FR-F1": "frf1",
+    "Benelli": "benelli", "Benelli M4": "benelli", "BENELLI": "benelli",
+    "P90": "p90", "FN P90": "p90", "P90": "p90",
+    "Magnum": "magnum", "MAGNUM": "magnum",
+    "KNIFE": "knife", "KNIFE_THROWN": "knife", "BLED": "medkit"
 };
 
 const customWeaponMapping = {};
@@ -151,7 +152,7 @@ Object.values(customWeaponGroups).forEach(group => Object.assign(customWeaponMap
 
 const OFFICIAL_GEAR_ORDER = "FGHIJKLMNZacefghijklOQRSTUVWX";
 
-let selectedCustomWeapons = Object.keys(customWeaponMapping);
+let selectedCustomWeapons = [];
 
 function openCustomWeaponsModal() {
     const list = document.getElementById("customWeaponsList");
@@ -187,15 +188,21 @@ function openCustomWeaponsModal() {
             };
 
             label.appendChild(checkbox);
-            
+
             const slug = weaponImages[name];
             if (slug) {
                 const img = document.createElement("img");
-                img.src = `weapons/${slug}.webp`;
+                img.src = `weapons/${slug}.webp?v=${Date.now()}`;
                 img.style.width = "40px";
                 img.style.height = "auto";
                 img.style.margin = "0 8px";
-                img.style.pointerEvents = "none";
+                img.style.cursor = "zoom-in";
+                img.title = "Clique para ampliar";
+                img.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openWeaponZoom(slug, name);
+                };
                 label.appendChild(img);
             }
 
@@ -208,6 +215,30 @@ function openCustomWeaponsModal() {
     });
 
     document.getElementById("customWeaponsModal").style.display = "flex";
+}
+
+function selectAllWeapons() {
+    selectedCustomWeapons = Object.keys(customWeaponMapping);
+    document.querySelectorAll('#customWeaponsList input[type="checkbox"]').forEach(cb => cb.checked = true);
+}
+
+function unselectAllWeapons() {
+    selectedCustomWeapons = [];
+    document.querySelectorAll('#customWeaponsList input[type="checkbox"]').forEach(cb => cb.checked = false);
+}
+
+function openWeaponZoom(slug, name) {
+    const modal = document.getElementById("weaponZoomModal");
+    const img = document.getElementById("zoomedWeaponImg");
+    const nameEl = document.getElementById("zoomedWeaponName");
+
+    img.src = `weapons/${slug}.webp?v=${Date.now()}`;
+    nameEl.innerText = name;
+    modal.style.display = "flex";
+}
+
+function closeWeaponZoom() {
+    document.getElementById("weaponZoomModal").style.display = "none";
 }
 
 function closeCustomWeaponsModal(accepted) {
@@ -615,11 +646,11 @@ async function updateServerStatus() {
             text.innerText = "Servidor Online";
             startBtn.style.display = "none";
             stopBtn.style.display = "inline-block";
-            
+
             details.style.display = "block";
             mapNameSpan.innerText = data.map || "Desconhecido";
             playerCountSpan.innerText = `${data.players.length}/12`;
-            
+
             if (data.players.length === 0) {
                 playerListDiv.innerHTML = "<p style='color:#888; font-size:0.9em;'>Nenhum jogador online.</p>";
             } else {
@@ -780,9 +811,17 @@ function buildKillTable(data) {
     const rows = data.map((p, i) => {
         const kd = p.deaths === 0 ? p.kills.toFixed(2) : (p.kills / p.deaths).toFixed(2);
         const kdClass = parseFloat(kd) >= 1 ? "kd-positive" : "kd-negative";
+
+        const avatarHtml = p.avatar
+            ? `<img src="${p.avatar}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:8px; object-fit:cover;">`
+            : `<i class="fas fa-user-circle" style="margin-right:8px; color:#666;"></i>`;
+
         return `<tr>
             <td>${i + 1}</td>
-            <td><span class="clickable-player" onclick="openProfile('${escHtml(p.player)}')">${escHtml(p.player)}</span></td>
+            <td style="text-align:left;">
+                ${avatarHtml}
+                <span class="clickable-player" onclick="openProfile('${escHtml(p.player)}')">${escHtml(p.player)}</span>
+            </td>
             <td>${escHtml(p.kills)}</td>
             <td>${escHtml(p.deaths)}</td>
             <td class="${kdClass}">${escHtml(kd)}</td>
@@ -809,7 +848,7 @@ async function fetchKills(period = activeKillTab) {
 document.getElementById("killRankingBtn").onclick = () => {
     document.getElementById("historyPanel").classList.remove("open");
     document.getElementById("historyBtn").style.display = "flex";
-    
+
     document.getElementById("killRankingPanel").classList.add("open");
     document.getElementById("killRankingBtn").style.display = "none";
     fetchKills(activeKillTab);
@@ -874,21 +913,36 @@ async function openProfile(playerName) {
     const modal = document.getElementById("profileModal");
     modal.style.display = "flex";
     document.getElementById("profileName").innerText = playerName;
-    
+
+    // Reset avatar display
+    document.getElementById("profileAvatarIcon").style.display = "block";
+    document.getElementById("profileAvatarImg").style.display = "none";
+
     try {
         const res = await fetch(`${API_URL}/profile?player=${encodeURIComponent(playerName)}`);
         const data = await res.json();
-        
+
+        if (data.avatar) {
+            document.getElementById("profileAvatarIcon").style.display = "none";
+            document.getElementById("profileAvatarImg").src = data.avatar;
+            document.getElementById("profileAvatarImg").style.display = "block";
+        }
+
         document.getElementById("profileKills").innerText = data.kills;
         document.getElementById("profileDeaths").innerText = data.deaths;
-        
+
         const topWeapon = data.topWeapon || "N/A";
         document.getElementById("profileWeapon").innerText = topWeapon;
-        
-        const slug = weaponImages[topWeapon];
+
+        let slug = weaponImages[topWeapon];
+        if (!slug && topWeapon) {
+            const lower = topWeapon.toLowerCase();
+            slug = Object.values(weaponImages).find(s => s.toLowerCase() === lower);
+        }
+
         const imgEl = document.getElementById("profileWeaponImg");
         if (slug) {
-            imgEl.src = `weapons/${slug}.webp`;
+            imgEl.src = `weapons/${slug}.webp?v=${Date.now()}`;
             imgEl.style.display = "block";
         } else {
             imgEl.style.display = "none";
@@ -897,7 +951,7 @@ async function openProfile(playerName) {
         document.getElementById("profileVictimKills").innerText = `${data.favoriteVictimKills} kills`;
         document.getElementById("profileNemesis").innerText = data.nemesis;
         document.getElementById("profileNemesisKills").innerText = `${data.nemesisKills} mortes`;
-    } catch(e) {
+    } catch (e) {
         console.error(e);
         document.getElementById("profileName").innerText = "Erro ao carregar";
     }
@@ -929,7 +983,7 @@ document.getElementById("adminPassword").oninput = (e) => {
 async function execAdminCmd(cmdType, payload) {
     const pass = document.getElementById("adminPassword").value;
     const body = { password: pass, cmd_type: cmdType, ...payload };
-    
+
     try {
         const res = await fetch(`${API_URL}/admin`, {
             method: "POST",
@@ -943,7 +997,7 @@ async function execAdminCmd(cmdType, payload) {
             if (cmdType === "kick") document.getElementById("adminKickInput").value = "";
             if (cmdType === "say") document.getElementById("adminSayInput").value = "";
         }
-    } catch(e) {
+    } catch (e) {
         alert("Erro na requisição: " + e.message);
     }
 }
@@ -970,7 +1024,7 @@ document.querySelectorAll(".kill-tab").forEach(btn => {
 document.getElementById("resetVotesBtn").onclick = resetVotesManual;
 
 document.querySelectorAll(".close").forEach(c => {
-    c.onclick = function() {
+    c.onclick = function () {
         this.parentElement.parentElement.style.display = "none";
     }
 });
@@ -994,3 +1048,83 @@ setInterval(() => {
         fetchKills(activeKillTab);
     }
 }, 15000);
+// --- Claim Profile & Avatar Upload ---
+document.getElementById("myProfileBtn").onclick = () => {
+    document.getElementById("claimModal").style.display = "flex";
+    const saved = JSON.parse(localStorage.getItem("urban_profile") || "null");
+    if (saved) {
+        showUploadForm(saved.name, saved.code);
+    }
+};
+
+document.getElementById("claimClose").onclick = () => {
+    document.getElementById("claimModal").style.display = "none";
+};
+
+async function handleClaim() {
+    const name = document.getElementById("claimName").value.trim();
+    const code = document.getElementById("claimCode").value.trim();
+    if (!name || !code) return alert("Preencha todos os campos.");
+
+    try {
+        const res = await fetch(`${API_URL}/claim-profile`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, code })
+        });
+        if (res.ok) {
+            localStorage.setItem("urban_profile", JSON.stringify({ name, code }));
+            showUploadForm(name, code);
+        } else {
+            alert(await res.text());
+        }
+    } catch (e) {
+        alert("Erro na conexão.");
+    }
+}
+
+function showUploadForm(name, code) {
+    document.getElementById("claimForm").style.display = "none";
+    document.getElementById("uploadForm").style.display = "block";
+    document.getElementById("authenticatedName").innerText = name;
+}
+
+function logoutClaim() {
+    localStorage.removeItem("urban_profile");
+    document.getElementById("claimForm").style.display = "block";
+    document.getElementById("uploadForm").style.display = "none";
+}
+
+document.getElementById("avatarInput").onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            document.getElementById("previewImg").src = ev.target.result;
+            document.getElementById("uploadPreview").style.display = "block";
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+async function handleUpload() {
+    const saved = JSON.parse(localStorage.getItem("urban_profile"));
+    const imgData = document.getElementById("previewImg").src;
+    if (!saved || !imgData) return;
+
+    try {
+        const res = await fetch(`${API_URL}/upload-avatar`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: saved.name, code: saved.code, image: imgData })
+        });
+        if (res.ok) {
+            alert("Foto salva com sucesso!");
+            location.reload();
+        } else {
+            alert(await res.text());
+        }
+    } catch (e) {
+        alert("Erro ao enviar imagem.");
+    }
+}
