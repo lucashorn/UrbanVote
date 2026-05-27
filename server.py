@@ -34,6 +34,8 @@ def init_db():
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS profiles
                  (name TEXT PRIMARY KEY, avatar_url TEXT, auth_code TEXT, auth_expiry DATETIME)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS matches
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, map TEXT, date TEXT, mvp TEXT, kills INTEGER, scoreboard TEXT)''')
     conn.commit()
     conn.close()
 
@@ -222,7 +224,26 @@ def save_stats():
     with open(STATS_FILE, "w", encoding="utf-8") as f:
         json.dump(global_stats, f)
 
+def migrate_history_to_db():
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        if "history" in global_stats and global_stats["history"]:
+            for item in global_stats["history"]:
+                c.execute("SELECT id FROM matches WHERE map = ? AND date = ?", (item["map"], item["date"]))
+                if not c.fetchone():
+                    c.execute("INSERT INTO matches (map, date, mvp, kills, scoreboard) VALUES (?, ?, ?, ?, ?)",
+                              (item["map"], item["date"], item["mvp"], item["kills"], json.dumps([])))
+            conn.commit()
+            global_stats["history"] = []
+            save_stats()
+            print("[INFO] Historico migrado para o banco de dados e limpo do global_stats")
+        conn.close()
+    except Exception as e:
+        print("Erro na migracao de historico para o BD:", e)
+
 def parse_logs_worker():
+    current_match_stats = {}
     while True:
         try:
             with stats_lock:
@@ -231,8 +252,6 @@ def parse_logs_worker():
                     global_stats["daily_date"] = today_str
                     global_stats["daily"] = {"kills": {}, "deaths": {}, "weapons": {}, "relationships": {}}
                     save_stats()
-            
-            current_match_kills = {}
             
             if os.path.exists(GAMES_LOG):
                 current_size = os.path.getsize(GAMES_LOG)
@@ -259,7 +278,7 @@ def parse_logs_worker():
                                 mapname = params.get('mapname', 'desconhecido').strip()
                                 gear = params.get('g_gear', '0').strip()
                                 weapons_text = decode_gear(gear)
-                                current_match_kills = {}
+                                current_match_stats = {}
                                 
                                 msg = f"^2Armas: ^7{weapons_text}"
                                 with open("bot_debug.log", "a") as dbg:
@@ -312,17 +331,34 @@ def parse_logs_worker():
 
                             m_shutdown = re.search(r"ShutdownGame:|Exit:", line)
                             if m_shutdown:
-                                if current_map_name and current_match_kills:
-                                    mvp = max(current_match_kills, key=current_match_kills.get) if current_match_kills else "Ninguém"
-                                    global_stats.setdefault("history", []).append({
-                                        "map": current_map_name,
-                                        "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                                        "mvp": mvp,
-                                        "kills": current_match_kills.get(mvp, 0)
-                                    })
-                                    # Keep only last 20
-                                    global_stats["history"] = global_stats["history"][-20:]
-                                current_match_kills = {}
+                                if current_map_name and current_match_stats:
+                                    mvp = "Ninguém"
+                                    mvp_kills = 0
+                                    for p, p_stats in current_match_stats.items():
+                                        if p_stats["kills"] > mvp_kills:
+                                            mvp = p
+                                            mvp_kills = p_stats["kills"]
+                                    
+                                    # Format scoreboard
+                                    scoreboard_data = []
+                                    for p, p_stats in current_match_stats.items():
+                                        scoreboard_data.append({
+                                            "player": p,
+                                            "kills": p_stats["kills"],
+                                            "deaths": p_stats["deaths"]
+                                        })
+                                    scoreboard_data.sort(key=lambda x: (-x["kills"], x["deaths"]))
+                                    
+                                    try:
+                                        conn = sqlite3.connect(DB_FILE)
+                                        c = conn.cursor()
+                                        c.execute("INSERT INTO matches (map, date, mvp, kills, scoreboard) VALUES (?, ?, ?, ?, ?)",
+                                                  (current_map_name, datetime.now().strftime("%Y-%m-%d %H:%M"), mvp, mvp_kills, json.dumps(scoreboard_data)))
+                                        conn.commit()
+                                        conn.close()
+                                    except Exception as e:
+                                        print("Erro ao salvar partida no BD:", e)
+                                current_match_stats = {}
                                 continue
 
                             m = KILL_RE.search(line)
@@ -343,8 +379,14 @@ def parse_logs_worker():
                                         stats["relationships"][killer] = {}
                                     stats["relationships"][killer][victim] = stats["relationships"][killer].get(victim, 0) + 1
                                     
+                            if victim not in current_match_stats:
+                                current_match_stats[victim] = {"kills": 0, "deaths": 0}
+                            current_match_stats[victim]["deaths"] += 1
+                            
                             if killer != victim and killer != "<world>":
-                                current_match_kills[killer] = current_match_kills.get(killer, 0) + 1
+                                if killer not in current_match_stats:
+                                    current_match_stats[killer] = {"kills": 0, "deaths": 0}
+                                current_match_stats[killer]["kills"] += 1
                         
                         if new_data:
                             global_stats["offset"] = f.tell()
@@ -517,8 +559,28 @@ class VoteServer(SimpleHTTPRequestHandler):
             return
 
         if self.path == "/history":
-            with stats_lock:
-                history = global_stats.get("history", [])
+            try:
+                conn = sqlite3.connect(DB_FILE)
+                c = conn.cursor()
+                c.execute("SELECT map, date, mvp, kills, scoreboard FROM matches WHERE kills > 0 ORDER BY id ASC")
+                rows = c.fetchall()
+                conn.close()
+                history = []
+                for row in rows:
+                    scoreboard_list = json.loads(row[4]) if row[4] else []
+                    for p_score in scoreboard_list:
+                        p_score["avatar"] = get_player_avatar(p_score["player"])
+                    history.append({
+                        "map": row[0],
+                        "date": row[1],
+                        "mvp": row[2],
+                        "kills": row[3],
+                        "scoreboard": scoreboard_list
+                    })
+            except Exception as e:
+                print("Erro ao carregar historico do BD:", e)
+                history = []
+            
             self.send_response(200)
             self.end_cors()
             self.send_header("Content-Type", "application/json")
@@ -808,6 +870,7 @@ HTTPServer.allow_reuse_address = True
 server = HTTPServer((HOST, PORT), VoteServer)
 
 load_stats()
+migrate_history_to_db()
 t = threading.Thread(target=parse_logs_worker, daemon=True)
 t.start()
 
