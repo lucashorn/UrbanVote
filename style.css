@@ -31,25 +31,25 @@ h1 {
 }
 
 #killRankingBtn {
+    background: #ff3333;
+    color: #000;
+    border: none;
+    border-radius: 50%;
     width: 46px;
     height: 46px;
-    border-radius: 50%;
-    background: #1a0000;
-    border: 2px solid #ff4444;
-    color: #ff4444;
-    font-size: 18px;
+    font-size: 1.2em;
     cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    transition: transform 0.2s, background 0.2s;
     display: flex;
-    align-items: center;
     justify-content: center;
-    box-shadow: 0 0 12px #ff444466;
-    transition: background 0.2s, box-shadow 0.2s;
+    align-items: center;
     flex-shrink: 0;
 }
 
 #killRankingBtn:hover {
-    background: #ff444422;
-    box-shadow: 0 0 20px #ff4444aa;
+    transform: scale(1.1);
+    background: #ff5555;
 }
 
 #killRankingPanel {
@@ -819,7 +819,7 @@ table.dataTable tbody td {
     /* À esquerda do widget do servidor */
     display: flex;
     gap: 12px;
-    z-index: 1000;
+    z-index: 2000;
 }
 
 #historyBtn {
@@ -1396,3 +1396,354 @@ table.dataTable tbody td {
     background: #ffaa0022;
     border-color: #ffaa00;
 }
+
+/* --- Circular Cropper and Zoom Slider Styles --- */
+
+/* Shape the cropper viewport into a circle */
+.cropper-container .cropper-view-box,
+.cropper-container .cropper-face {
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px #ffaa00;
+    outline: none;
+}
+
+/* Customize the crop box handles for circular cropping */
+.cropper-container .cropper-line,
+.cropper-container .cropper-point {
+    background-color: #ffaa00;
+}
+
+/* Custom Zoom Slider styling */
+#zoomSlider {
+    -webkit-appearance: none;
+    appearance: none;
+    background: #21262d;
+    outline: none;
+    border-radius: 4px;
+    transition: background 0.3s;
+}
+
+#zoomSlider:hover {
+    background: #30363d;
+}
+
+#zoomSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffaa00;
+    cursor: pointer;
+    box-shadow: 0 0 5px rgba(255, 170, 0, 0.5);
+    transition: transform 0.1s, background-color 0.1s;
+}
+
+#zoomSlider::-webkit-slider-thumb:hover {
+    background: #ffc107;
+    transform: scale(1.2);
+}
+
+#zoomSlider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: none;
+    border-radius: 50%;
+    background: #ffaa00;
+    cursor: pointer;
+    box-shadow: 0 0 5px rgba(255, 170, 0, 0.5);
+    transition: transform 0.1s, background-color 0.1s;
+}
+
+#zoomSlider::-moz-range-thumb:hover {
+    background: #ffc107;
+    transform: scale(1.2);
+}
+
+/* Zoom buttons hover transition */
+#zoomInBtn:hover,
+#zoomOutBtn:hover {
+    background: #444 !important;
+    border-color: #ffaa00 !important;
+    color: #ffaa00 !important;
+}
+
+#cropConfirmBtn:hover {
+    background: #00cc7a !important;
+}
+
+/* Zoomable avatar hover effect */
+.zoomable-avatar {
+    cursor: pointer;
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.zoomable-avatar:hover {
+    transform: scale(1.15);
+    filter: brightness(1.2);
+}
+
+/* --- Floating Players Panel --- */
+#livePlayersFloatingPanel {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 900;
+    background: rgba(13, 17, 23, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 255, 153, 0.15);
+    border-radius: 12px;
+    padding: 12px 14px;
+    width: 280px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 255, 153, 0.05);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    max-height: calc(100vh - 100px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.floating-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 6px;
+}
+
+.floating-panel-header .badge {
+    background: rgba(0, 255, 153, 0.1);
+    color: #00ff99;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    border: 1px solid rgba(0, 255, 153, 0.2);
+}
+
+.floating-panel-subheader {
+    font-size: 0.8em;
+    color: #aaa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.floating-player-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* Custom thin green scrollbar for floating list */
+.floating-player-list::-webkit-scrollbar {
+    width: 4px;
+}
+.floating-player-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+}
+.floating-player-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 153, 0.3);
+    border-radius: 2px;
+}
+
+.floating-player-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 6px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.floating-player-row:hover {
+    background: rgba(0, 255, 153, 0.05);
+    border-color: rgba(0, 255, 153, 0.15);
+}
+
+.floating-player-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.floating-player-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.floating-player-icon {
+    font-size: 1.25em;
+    color: #777;
+    width: 24px;
+    text-align: center;
+}
+
+.floating-player-name {
+    font-size: 0.85em;
+    color: #e2e8f0;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.floating-player-name:hover {
+    color: #00ff99;
+}
+
+.floating-player-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8em;
+}
+
+.floating-player-score {
+    color: #ffaa00;
+    font-weight: bold;
+}
+
+.floating-player-ping {
+    color: #777;
+    font-size: 0.9em;
+}
+
+.floating-player-ping.ping-low {
+    color: #00ff99;
+}
+.floating-player-ping.ping-mid {
+    color: #ffaa00;
+}
+.floating-player-ping.ping-high {
+    color: #ff3333;
+}
+
+/* Hide floating panels on mobile to avoid layout clutter */
+@media (max-width: 768px) {
+    #livePlayersFloatingPanel, #top3FloatingPanel {
+        display: none !important;
+    }
+}
+
+/* --- Top 3 Floating Panel (Top-Right) --- */
+#top3FloatingPanel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.top3-list {
+    display: flex;
+    gap: 12px;
+}
+
+.top3-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.top3-item:hover {
+    transform: scale(1.15);
+}
+
+.top3-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    background: #111;
+}
+
+.top3-medal {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72em;
+    font-weight: 900;
+    color: #000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.top3-item.rank-1 .top3-avatar {
+    border-color: #ffd700; /* Gold */
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+}
+.top3-item.rank-1 .top3-medal {
+    background: #ffd700;
+}
+
+.top3-item.rank-2 .top3-avatar {
+    border-color: #c0c0c0; /* Silver */
+    box-shadow: 0 0 10px rgba(192, 192, 192, 0.3);
+}
+.top3-item.rank-2 .top3-medal {
+    background: #c0c0c0;
+}
+
+.top3-item.rank-3 .top3-avatar {
+    border-color: #cd7f32; /* Bronze */
+    box-shadow: 0 0 10px rgba(205, 127, 50, 0.3);
+}
+.top3-item.rank-3 .top3-medal {
+    background: #cd7f32;
+}
+
+/* Tooltip style */
+.top3-item::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: 64px;
+    right: 50%;
+    transform: translateX(50%) translateY(-5px);
+    background: rgba(13, 17, 23, 0.95);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.75em;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 1000;
+    border: 1px solid rgba(0, 255, 153, 0.25);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.top3-item:hover::after {
+    opacity: 1;
+    transform: translateX(50%) translateY(0);
+}
+
+

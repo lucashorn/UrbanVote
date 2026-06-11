@@ -33,7 +33,7 @@ def init_db():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS profiles
-                 (name TEXT PRIMARY KEY, avatar_url TEXT, auth_code TEXT, auth_expiry DATETIME)''')
+                 (name TEXT PRIMARY KEY, avatar_url TEXT, auth_code TEXT, auth_expiry DATETIME, avatar_original_url TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS matches
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, map TEXT, date TEXT, mvp TEXT, kills INTEGER, scoreboard TEXT)''')
     conn.commit()
@@ -52,6 +52,20 @@ def get_player_avatar(name):
         return res[0] if res else None
     except:
         return None
+
+def get_player_avatars(name):
+    try:
+        clean = clean_name(name)
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        c.execute("SELECT avatar_url, avatar_original_url FROM profiles WHERE name = ?", (clean,))
+        res = c.fetchone()
+        conn.close()
+        if res:
+            return res[0], res[1]
+        return None, None
+    except:
+        return None, None
 
 def set_auth_code(name, code):
     clean = clean_name(name)
@@ -73,42 +87,64 @@ def verify_auth_code(name, code):
     clean = clean_name(name)
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute("SELECT auth_code, auth_expiry FROM profiles WHERE name = ?", (clean,))
+    c.execute("SELECT auth_code FROM profiles WHERE name = ?", (clean,))
     res = c.fetchone()
     conn.close()
     
     print(f"[DEBUG] Auth attempt: name='{name}', clean='{clean}', code='{code}'")
     if res:
-        saved_code, expiry = res
-        now = datetime.now().timestamp()
-        print(f"[DEBUG] DB record: saved_code='{saved_code}', expiry={expiry}, now={now}")
-        if str(saved_code) == str(code) and now < float(expiry):
+        saved_code = res[0]
+        print(f"[DEBUG] DB record: saved_code='{saved_code}'")
+        if str(saved_code) == str(code):
             return True
         else:
-            print(f"[DEBUG] Validation failed: code_match={str(saved_code) == str(code)}, time_ok={now < float(expiry)}")
+            print(f"[DEBUG] Validation failed: code mismatch")
     else:
         print(f"[DEBUG] No record found for '{clean}'")
     return False
 
-def save_avatar(name, b64_data):
-    if not b64_data: return None
+def save_avatar(name, b64_cropped, b64_original=None):
+    if not b64_cropped: return None
     try:
         clean = clean_name(name)
-        header, data = b64_data.split(",", 1)
+        
+        # Save cropped image
+        header, data = b64_cropped.split(",", 1)
         ext = "jpg"
         if "png" in header: ext = "png"
         elif "webp" in header: ext = "webp"
         
-        filename = f"{clean.replace(' ', '_')}_{int(time.time())}.{ext}"
+        timestamp = int(time.time())
+        filename = f"{clean.replace(' ', '_')}_{timestamp}.{ext}"
         filepath = os.path.join(AVATARS_DIR, filename)
         
         with open(filepath, "wb") as f:
             f.write(base64.b64decode(data))
         
         url = f"avatars/{filename}"
+        
+        # Save original image
+        original_url = None
+        if b64_original:
+            orig_header, orig_data = b64_original.split(",", 1)
+            orig_ext = "jpg"
+            if "png" in orig_header: orig_ext = "png"
+            elif "webp" in orig_header: orig_ext = "webp"
+            
+            orig_filename = f"{clean.replace(' ', '_')}_{timestamp}_orig.{orig_ext}"
+            orig_filepath = os.path.join(AVATARS_DIR, orig_filename)
+            
+            with open(orig_filepath, "wb") as f:
+                f.write(base64.b64decode(orig_data))
+            
+            original_url = f"avatars/{orig_filename}"
+            
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
-        c.execute("UPDATE profiles SET avatar_url = ? WHERE name = ?", (url, clean))
+        if original_url:
+            c.execute("UPDATE profiles SET avatar_url = ?, avatar_original_url = ? WHERE name = ?", (url, original_url, clean))
+        else:
+            c.execute("UPDATE profiles SET avatar_url = ? WHERE name = ?", (url, clean))
         conn.commit()
         conn.close()
         return url
@@ -440,12 +476,14 @@ class VoteServer(SimpleHTTPRequestHandler):
                     if weapons:
                         top_weapon = max(weapons, key=weapons.get).replace("UT_MOD_", "")
                     
+                    avatar_url, avatar_orig = get_player_avatars(p)
                     result.append({
                         "player": p, 
                         "kills": k, 
                         "deaths": d, 
                         "topWeapon": top_weapon,
-                        "avatar": get_player_avatar(p)
+                        "avatar": avatar_url,
+                        "avatar_original": avatar_orig or avatar_url
                     })
                 result.sort(key=lambda x: x["kills"], reverse=True)
 
@@ -482,6 +520,24 @@ class VoteServer(SimpleHTTPRequestHandler):
         if self.path == "/server-live":
             is_running = subprocess.call(["pgrep", "Quake3-UrT-Ded."], stdout=subprocess.DEVNULL) == 0
             if not is_running:
+                if os.path.exists("mock_live.txt"):
+                    try:
+                        with open("mock_live.txt", "r") as f:
+                            mock_data = json.loads(f.read())
+                        # Populate avatars for mock data
+                        for p in mock_data.get("players", []):
+                            avatar_url, avatar_orig = get_player_avatars(p["name"])
+                            p["avatar"] = avatar_url
+                            p["avatar_original"] = avatar_orig or avatar_url
+                        self.send_response(200)
+                        self.end_cors()
+                        self.send_header("Content-Type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(json.dumps(mock_data).encode("utf-8"))
+                        return
+                    except Exception as e:
+                        print("Erro ao ler mock_live.txt:", e)
+                
                 self.send_response(200)
                 self.end_cors()
                 self.send_header("Content-Type", "application/json")
@@ -504,7 +560,14 @@ class VoteServer(SimpleHTTPRequestHandler):
                         if name != "^7":
                             # Limpar códigos de cor para o front-end
                             clean_name = re.sub(r'\^\d', '', name)
-                            players.append({"name": clean_name, "ping": ping, "score": parts[1]})
+                            avatar_url, avatar_orig = get_player_avatars(clean_name)
+                            players.append({
+                                "name": clean_name, 
+                                "ping": ping, 
+                                "score": parts[1],
+                                "avatar": avatar_url,
+                                "avatar_original": avatar_orig or avatar_url
+                            })
             
             self.send_response(200)
             self.end_cors()
@@ -540,6 +603,7 @@ class VoteServer(SimpleHTTPRequestHandler):
                 if weapons:
                     top_weapon = max(weapons, key=weapons.get).replace("UT_MOD_", "")
                     
+                avatar_url, avatar_orig = get_player_avatars(player_name)
                 data = {
                     "player": player_name,
                     "kills": stats.get("kills", {}).get(player_name, 0),
@@ -549,7 +613,8 @@ class VoteServer(SimpleHTTPRequestHandler):
                     "favoriteVictimKills": fav_victim_kills,
                     "nemesis": nemesis,
                     "nemesisKills": nemesis_kills,
-                    "avatar": get_player_avatar(player_name)
+                    "avatar": avatar_url,
+                    "avatar_original": avatar_orig or avatar_url
                 }
             self.send_response(200)
             self.end_cors()
@@ -569,7 +634,9 @@ class VoteServer(SimpleHTTPRequestHandler):
                 for row in rows:
                     scoreboard_list = json.loads(row[4]) if row[4] else []
                     for p_score in scoreboard_list:
-                        p_score["avatar"] = get_player_avatar(p_score["player"])
+                        avatar_url, avatar_orig = get_player_avatars(p_score["player"])
+                        p_score["avatar"] = avatar_url
+                        p_score["avatar_original"] = avatar_orig or avatar_url
                     history.append({
                         "map": row[0],
                         "date": row[1],
@@ -645,9 +712,10 @@ class VoteServer(SimpleHTTPRequestHandler):
                 content_length = int(self.headers["Content-Length"])
                 data = json.loads(self.rfile.read(content_length).decode("utf-8"))
                 name, code, b64_image = data.get("name"), data.get("code"), data.get("image")
+                b64_original = data.get("originalImage")
                 
                 if verify_auth_code(name, code):
-                    url = save_avatar(name, b64_image)
+                    url = save_avatar(name, b64_image, b64_original)
                     if url:
                         self.send_response(200)
                         self.end_cors()

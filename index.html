@@ -8,6 +8,7 @@
     <link rel="icon" href="img/ico.jpeg" type="image/jpeg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -87,8 +88,8 @@
                         <i class="fas fa-upload"></i> Selecionar Imagem
                     </button>
                     <div id="uploadPreview" style="margin-top: 10px; display: none;">
-                        <img id="previewImg"
-                            style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ffaa00;">
+                        <img id="previewImg" onclick="openAvatarZoom(this.dataset.original || this.src)"
+                            style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ffaa00; cursor: pointer;">
                         <button onclick="handleUpload()"
                             style="background:#00ff99; color:#000; margin-top:10px; width:100%">Salvar Foto</button>
                     </div>
@@ -96,6 +97,35 @@
                 <button onclick="logoutClaim()"
                     style="background:transparent; color:#888; border:none; cursor:pointer; font-size:0.8em;">Sair</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal de Recorte de Foto -->
+    <div id="cropModal" class="modal">
+        <div class="modal-content profile-modal" style="max-width: 450px;">
+            <span class="close" id="cropClose">&times;</span>
+            <h2><i class="fas fa-crop-alt"></i> Ajustar Foto</h2>
+            <p style="font-size: 0.9em; color: #aaa; margin-bottom: 15px;">
+                Arraste e redimensione para enquadrar seu rosto no círculo.
+            </p>
+            <div style="margin: 15px 0; max-height: 300px; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; border-radius: 8px;">
+                <img id="cropImage" style="max-width: 100%; max-height: 300px; display: block;">
+            </div>
+            
+            <!-- Controles de zoom -->
+            <div style="margin: 15px 0; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <button id="zoomOutBtn" type="button" style="background: #333; border: 1px solid #444; color: white; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-search-minus"></i>
+                </button>
+                <input type="range" id="zoomSlider" min="0" max="100" value="0" style="flex: 1; accent-color: #ffaa00; height: 6px; border-radius: 3px; cursor: pointer;">
+                <button id="zoomInBtn" type="button" style="background: #333; border: 1px solid #444; color: white; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-search-plus"></i>
+                </button>
+            </div>
+            
+            <button id="cropConfirmBtn" style="background: #00ff99; color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+                Confirmar Recorte
+            </button>
         </div>
     </div>
 
@@ -185,15 +215,6 @@
             <span id="serverStatusDot" class="status-dot offline"></span>
             <span id="serverStatusText">Servidor Offline</span>
         </div>
-        <div id="liveStatusDetails"
-            style="display:none; margin-top:10px; font-size:0.85em; border-top:1px solid #333; padding-top:10px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                <strong style="color:#00ffcc"><i class="fas fa-map"></i> <span id="liveMapName">-</span></strong>
-                <span id="livePlayerCount">0/12</span>
-            </div>
-            <div id="livePlayerList" style="max-height: 100px; overflow-y:auto;">
-            </div>
-        </div>
         <div class="server-widget-actions">
             <button id="startServerBtn" class="btn-start"><i class="fas fa-play"></i> Iniciar</button>
             <button id="stopServerBtn" class="btn-stop" style="display:none"><i class="fas fa-stop"></i> Parar</button>
@@ -224,8 +245,8 @@
             <div class="profile-header">
                 <i class="fas fa-user-circle" id="profileAvatarIcon"
                     style="font-size: 5em; color: #ff3333; margin-bottom: 10px;"></i>
-                <img id="profileAvatarImg"
-                    style="width:100px; height:100px; border-radius:50%; object-fit:cover; display:none; margin: 0 auto 15px; border: 3px solid #ff3333;">
+                <img id="profileAvatarImg" onclick="openAvatarZoom(this.dataset.original || this.src)"
+                    style="width:100px; height:100px; border-radius:50%; object-fit:cover; display:none; margin: 0 auto 15px; border: 3px solid #ff3333; cursor: pointer;">
                 <h2 id="profileName">Carregando...</h2>
             </div>
             <div class="profile-stats">
@@ -334,8 +355,40 @@
         </div>
     </div>
 
+    <!-- Modal de Zoom do Avatar -->
+    <div id="avatarZoomModal" class="modal" onclick="closeAvatarZoom()"
+        style="display:none; z-index: 5000; background: rgba(0,0,0,0.95);">
+        <div style="position: relative; max-width: 90%; max-height: 90%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <img id="zoomedAvatarImg" src=""
+                style="max-width: 90vw; max-height: 80vh; border: 3px solid #00ff99; border-radius: 12px; box-shadow: 0 0 30px rgba(0, 255, 153, 0.4); object-fit: contain;">
+            <p style="text-align: center; color: #00ff99; margin-top: 15px; font-weight: bold; font-size: 1.2em;">Foto de Perfil</p>
+        </div>
+    </div>
+
+    <!-- Quadro Flutuante de Jogadores Online -->
+    <div id="livePlayersFloatingPanel" style="display: none;">
+        <div class="floating-panel-header">
+            <span><i class="fas fa-gamepad" style="color: #00ff99; margin-right: 5px;"></i> Jogando Agora</span>
+            <span id="floatingPlayerCount" class="badge">0/12</span>
+        </div>
+        <div class="floating-panel-subheader">
+            <span id="floatingMapName"><i class="fas fa-map"></i> -</span>
+        </div>
+        <div id="floatingPlayerList" class="floating-player-list">
+            <!-- Jogadores serão injetados aqui -->
+        </div>
+    </div>
+
+    <!-- Quadro Flutuante do Top 3 Ranking Geral -->
+    <div id="top3FloatingPanel">
+        <div id="top3List" class="top3-list">
+            <!-- Renderizado via JS -->
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <script src="script.js?v=14"></script>
 </body>
 

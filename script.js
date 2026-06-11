@@ -242,6 +242,18 @@ function closeWeaponZoom() {
     document.getElementById("weaponZoomModal").style.display = "none";
 }
 
+function openAvatarZoom(imgSrc) {
+    if (!imgSrc) return;
+    const modal = document.getElementById("avatarZoomModal");
+    const img = document.getElementById("zoomedAvatarImg");
+    img.src = imgSrc;
+    modal.style.display = "flex";
+}
+
+function closeAvatarZoom() {
+    document.getElementById("avatarZoomModal").style.display = "none";
+}
+
 function closeCustomWeaponsModal(accepted) {
     document.getElementById("customWeaponsModal").style.display = "none";
     if (!accepted) {
@@ -637,10 +649,6 @@ async function updateServerStatus() {
         const text = document.getElementById("serverStatusText");
         const startBtn = document.getElementById("startServerBtn");
         const stopBtn = document.getElementById("stopServerBtn");
-        const details = document.getElementById("liveStatusDetails");
-        const mapNameSpan = document.getElementById("liveMapName");
-        const playerCountSpan = document.getElementById("livePlayerCount");
-        const playerListDiv = document.getElementById("livePlayerList");
 
         if (data.running) {
             dot.className = "status-dot online";
@@ -648,29 +656,50 @@ async function updateServerStatus() {
             startBtn.style.display = "none";
             stopBtn.style.display = "inline-block";
 
-            details.style.display = "block";
-            mapNameSpan.innerText = data.map || "Desconhecido";
-            playerCountSpan.innerText = `${data.players.length}/12`;
+            // Render Floating Panel
+            const floatPanel = document.getElementById("livePlayersFloatingPanel");
+            const floatMap = document.getElementById("floatingMapName");
+            const floatCount = document.getElementById("floatingPlayerCount");
+            const floatList = document.getElementById("floatingPlayerList");
 
             if (data.players.length === 0) {
-                playerListDiv.innerHTML = "<p style='color:#888; font-size:0.9em;'>Nenhum jogador online.</p>";
+                floatPanel.style.display = "none";
             } else {
-                playerListDiv.innerHTML = data.players.map(p => `
-                    <div class="live-player">
-                        <span class="live-player-name clickable-player" onclick="openProfile('${escHtml(p.name)}')">${escHtml(p.name)}</span>
-                        <span>
-                            <span style="color:#fff; margin-right:5px;">${escHtml(p.score)} pts</span>
-                            <span class="live-player-ping">${escHtml(p.ping)}ms</span>
-                        </span>
-                    </div>
-                `).join("");
+                floatMap.innerHTML = `<i class="fas fa-map"></i> ${escHtml(data.map || "Desconhecido")}`;
+                floatCount.innerText = `${data.players.length}/12`;
+
+                floatList.innerHTML = data.players.map(p => {
+                    const pingVal = parseInt(p.ping) || 0;
+                    let pingClass = "ping-low";
+                    if (pingVal >= 120) pingClass = "ping-high";
+                    else if (pingVal >= 50) pingClass = "ping-mid";
+
+                    const avatarHtml = p.avatar
+                        ? `<img src="${p.avatar}" onclick="openAvatarZoom('${p.avatar_original || p.avatar}')" class="floating-player-avatar zoomable-avatar" title="Clique para ampliar">`
+                        : `<i class="fas fa-user-circle floating-player-icon"></i>`;
+
+                    return `
+                        <div class="floating-player-row">
+                            <div class="floating-player-left">
+                                ${avatarHtml}
+                                <span class="floating-player-name" onclick="openProfile('${escHtml(p.name)}')">${escHtml(p.name)}</span>
+                            </div>
+                            <div class="floating-player-right">
+                                <span class="floating-player-score">${escHtml(p.score)} pts</span>
+                                <span class="floating-player-ping ${pingClass}">${escHtml(p.ping)}ms</span>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+
+                floatPanel.style.display = "flex";
             }
         } else {
             dot.className = "status-dot offline";
             text.innerText = "Servidor Offline";
             startBtn.style.display = "inline-block";
             stopBtn.style.display = "none";
-            details.style.display = "none";
+            document.getElementById("livePlayersFloatingPanel").style.display = "none";
         }
         return data.running;
     } catch (e) {
@@ -814,7 +843,7 @@ function buildKillTable(data) {
         const kdClass = parseFloat(kd) >= 1 ? "kd-positive" : "kd-negative";
 
         const avatarHtml = p.avatar
-            ? `<img src="${p.avatar}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:8px; object-fit:cover;">`
+            ? `<img src="${p.avatar}" onclick="openAvatarZoom('${p.avatar_original || p.avatar}')" class="zoomable-avatar" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:8px; object-fit:cover; cursor:pointer;">`
             : `<i class="fas fa-user-circle" style="margin-right:8px; color:#666;"></i>`;
 
         return `<tr>
@@ -847,17 +876,24 @@ async function fetchKills(period = activeKillTab) {
 }
 
 document.getElementById("killRankingBtn").onclick = () => {
+    const rankingPanel = document.getElementById("killRankingPanel");
+    const isRankingOpen = rankingPanel.classList.contains("open");
+    
+    // Close history panel
     document.getElementById("historyPanel").classList.remove("open");
-    document.getElementById("historyBtn").style.display = "flex";
+    const allMatchesBtn = document.getElementById("openAllMatchesBtn");
+    if (allMatchesBtn) allMatchesBtn.style.display = "none";
 
-    document.getElementById("killRankingPanel").classList.add("open");
-    document.getElementById("killRankingBtn").style.display = "none";
-    fetchKills(activeKillTab);
+    if (isRankingOpen) {
+        rankingPanel.classList.remove("open");
+    } else {
+        rankingPanel.classList.add("open");
+        fetchKills(activeKillTab);
+    }
 };
 
 document.getElementById("killPanelClose").onclick = () => {
     document.getElementById("killRankingPanel").classList.remove("open");
-    document.getElementById("killRankingBtn").style.display = "flex";
 };
 
 // --- Histórico Panel ---
@@ -871,12 +907,19 @@ function formatDateToBR(dateStr) {
 }
 
 document.getElementById("historyBtn").onclick = async () => {
-    document.getElementById("killRankingPanel").classList.remove("open");
-    document.getElementById("killRankingBtn").style.display = "flex";
+    const historyPanel = document.getElementById("historyPanel");
+    const isHistoryOpen = historyPanel.classList.contains("open");
 
-    document.getElementById("historyPanel").classList.add("open");
-    document.getElementById("historyBtn").style.display = "none";
-    const el = document.getElementById("historyPanelBody");
+    // Close ranking panel
+    document.getElementById("killRankingPanel").classList.remove("open");
+
+    if (isHistoryOpen) {
+        historyPanel.classList.remove("open");
+        const allMatchesBtn = document.getElementById("openAllMatchesBtn");
+        if (allMatchesBtn) allMatchesBtn.style.display = "none";
+    } else {
+        historyPanel.classList.add("open");
+        const el = document.getElementById("historyPanelBody");
     try {
         const res = await fetch(`${API_URL}/history`);
         const data = await res.json();
@@ -919,11 +962,11 @@ document.getElementById("historyBtn").onclick = async () => {
     } catch (e) {
         el.innerHTML = "<p style='color:#ff3333;'>Erro ao carregar histórico.</p>";
     }
+  }
 };
 
 document.getElementById("historyPanelClose").onclick = () => {
     document.getElementById("historyPanel").classList.remove("open");
-    document.getElementById("historyBtn").style.display = "flex";
     const allMatchesBtn = document.getElementById("openAllMatchesBtn");
     if (allMatchesBtn) allMatchesBtn.style.display = "none";
 };
@@ -954,7 +997,7 @@ function buildScoreboardTable(scoreboard) {
         const kdClass = parseFloat(kd) >= 1 ? "kd-positive" : "kd-negative";
 
         const avatarHtml = p.avatar
-            ? `<img src="${p.avatar}" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:8px; object-fit:cover;">`
+            ? `<img src="${p.avatar}" onclick="event.stopPropagation(); openAvatarZoom('${p.avatar_original || p.avatar}')" class="zoomable-avatar" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:8px; object-fit:cover; cursor:pointer;">`
             : `<i class="fas fa-user-circle" style="margin-right:8px; color:#666;"></i>`;
 
         return `<tr>
@@ -1034,6 +1077,7 @@ async function openProfile(playerName) {
         if (data.avatar) {
             document.getElementById("profileAvatarIcon").style.display = "none";
             document.getElementById("profileAvatarImg").src = data.avatar;
+            document.getElementById("profileAvatarImg").dataset.original = data.avatar_original || data.avatar;
             document.getElementById("profileAvatarImg").style.display = "block";
         }
 
@@ -1143,14 +1187,50 @@ document.getElementById("downloadMapcycle").onclick = downloadMapcycle;
 document.getElementById("startServerBtn").onclick = startServer;
 document.getElementById("stopServerBtn").onclick = stopServer;
 
+async function loadTop3Ranking() {
+    try {
+        const res = await fetch(`${API_URL}/kills?period=all`);
+        const data = await res.json();
+        const top3 = data.slice(0, 3);
+        const listDiv = document.getElementById("top3List");
+        
+        if (top3.length === 0) {
+            document.getElementById("top3FloatingPanel").style.display = "none";
+            return;
+        }
+        
+        document.getElementById("top3FloatingPanel").style.display = "flex";
+        
+        listDiv.innerHTML = top3.map((p, idx) => {
+            const rank = idx + 1;
+            const rankText = rank === 1 ? "1º" : rank === 2 ? "2º" : "3º";
+            
+            const avatarHtml = p.avatar
+                ? `<img src="${p.avatar}" class="top3-avatar" onclick="openProfile('${escHtml(p.player)}')" title="Clique para ver perfil">`
+                : `<i class="fas fa-user-circle top3-avatar" style="font-size: 56px; display: flex; align-items: center; justify-content: center; color: #666; border: 2px solid transparent; cursor: pointer;" onclick="openProfile('${escHtml(p.player)}')"></i>`;
+
+            return `
+                <div class="top3-item rank-${rank}" data-tooltip="${escHtml(p.player)} - ${escHtml(p.kills)} kills">
+                    ${avatarHtml}
+                    <div class="top3-medal">${rankText}</div>
+                </div>
+            `;
+        }).join("");
+    } catch (e) {
+        console.error("Erro ao carregar top 3:", e);
+    }
+}
+
 resetDailyVotes();
 renderMaps();
 setupWeaponButtons();
 setupFriendlyFireButtons();
 fetchVotes();
+loadTop3Ranking();
 
 setInterval(updateServerStatus, 15000); // Polling cada 15s pro live server
 updateServerStatus();
+setInterval(loadTop3Ranking, 30000); // Polling cada 30s pro ranking top 3
 
 setInterval(() => {
     if (document.getElementById("killRankingPanel").classList.contains("open")) {
@@ -1204,28 +1284,122 @@ function logoutClaim() {
     document.getElementById("uploadForm").style.display = "none";
 }
 
+let avatarCropper = null;
+let cropperMinZoom = 0;
+let cropperMaxZoom = 0;
+
 document.getElementById("avatarInput").onchange = (e) => {
     const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = (ev) => {
-            document.getElementById("previewImg").src = ev.target.result;
-            document.getElementById("uploadPreview").style.display = "block";
+            const cropImage = document.getElementById("cropImage");
+            cropImage.src = ev.target.result;
+            document.getElementById("previewImg").dataset.original = ev.target.result;
+            
+            // Show crop modal
+            document.getElementById("cropModal").style.display = "flex";
+            
+            // Destroy existing cropper if any
+            if (avatarCropper) {
+                avatarCropper.destroy();
+                avatarCropper = null;
+            }
+            
+            // Initialize Cropper.js after modal displays
+            setTimeout(() => {
+                avatarCropper = new Cropper(cropImage, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    dragMode: 'move',
+                    autoCropArea: 0.8,
+                    restore: false,
+                    guides: false,
+                    center: false,
+                    highlight: false,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: false,
+                    ready() {
+                        const imageData = avatarCropper.getImageData();
+                        cropperMinZoom = imageData.width / imageData.naturalWidth;
+                        cropperMaxZoom = cropperMinZoom * 4;
+                        document.getElementById("zoomSlider").value = 0;
+                    },
+                    zoom(event) {
+                        if (cropperMinZoom && cropperMaxZoom) {
+                            const ratio = event.detail.ratio;
+                            const pct = ((ratio - cropperMinZoom) / (cropperMaxZoom - cropperMinZoom)) * 100;
+                            document.getElementById("zoomSlider").value = Math.max(0, Math.min(100, pct));
+                        }
+                    }
+                });
+            }, 50);
         };
         reader.readAsDataURL(file);
+    }
+};
+
+// Bind Zoom Controls
+document.getElementById("zoomInBtn").onclick = () => {
+    if (avatarCropper) avatarCropper.zoom(0.1);
+};
+
+document.getElementById("zoomOutBtn").onclick = () => {
+    if (avatarCropper) avatarCropper.zoom(-0.1);
+};
+
+document.getElementById("zoomSlider").oninput = (e) => {
+    if (avatarCropper && cropperMinZoom && cropperMaxZoom) {
+        const val = parseFloat(e.target.value);
+        const targetZoom = cropperMinZoom + (val / 100) * (cropperMaxZoom - cropperMinZoom);
+        avatarCropper.zoomTo(targetZoom);
+    }
+};
+
+document.getElementById("cropClose").onclick = () => {
+    document.getElementById("cropModal").style.display = "none";
+    if (avatarCropper) {
+        avatarCropper.destroy();
+        avatarCropper = null;
+    }
+    document.getElementById("avatarInput").value = "";
+};
+
+document.getElementById("cropConfirmBtn").onclick = () => {
+    if (avatarCropper) {
+        const canvas = avatarCropper.getCroppedCanvas({
+            width: 300,
+            height: 300
+        });
+        
+        const croppedDataUrl = canvas.toDataURL("image/jpeg", 0.9);
+        document.getElementById("previewImg").src = croppedDataUrl;
+        document.getElementById("uploadPreview").style.display = "block";
+        
+        // Hide modal and cleanup
+        document.getElementById("cropModal").style.display = "none";
+        avatarCropper.destroy();
+        avatarCropper = null;
     }
 };
 
 async function handleUpload() {
     const saved = JSON.parse(localStorage.getItem("urban_profile"));
     const imgData = document.getElementById("previewImg").src;
+    const originalImgData = document.getElementById("previewImg").dataset.original;
     if (!saved || !imgData) return;
 
     try {
         const res = await fetch(`${API_URL}/upload-avatar`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: saved.name, code: saved.code, image: imgData })
+            body: JSON.stringify({ 
+                name: saved.name, 
+                code: saved.code, 
+                image: imgData,
+                originalImage: originalImgData
+            })
         });
         if (res.ok) {
             alert("Foto salva com sucesso!");
