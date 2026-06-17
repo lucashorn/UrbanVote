@@ -108,22 +108,27 @@
             <p style="font-size: 0.9em; color: #aaa; margin-bottom: 15px;">
                 Arraste e redimensione para enquadrar seu rosto no círculo.
             </p>
-            <div style="margin: 15px 0; max-height: 300px; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; border-radius: 8px;">
+            <div
+                style="margin: 15px 0; max-height: 300px; background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; border-radius: 8px;">
                 <img id="cropImage" style="max-width: 100%; max-height: 300px; display: block;">
             </div>
-            
+
             <!-- Controles de zoom -->
             <div style="margin: 15px 0; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                <button id="zoomOutBtn" type="button" style="background: #333; border: 1px solid #444; color: white; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <button id="zoomOutBtn" type="button"
+                    style="background: #333; border: 1px solid #444; color: white; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                     <i class="fas fa-search-minus"></i>
                 </button>
-                <input type="range" id="zoomSlider" min="0" max="100" value="0" style="flex: 1; accent-color: #ffaa00; height: 6px; border-radius: 3px; cursor: pointer;">
-                <button id="zoomInBtn" type="button" style="background: #333; border: 1px solid #444; color: white; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <input type="range" id="zoomSlider" min="0" max="100" value="0"
+                    style="flex: 1; accent-color: #ffaa00; height: 6px; border-radius: 3px; cursor: pointer;">
+                <button id="zoomInBtn" type="button"
+                    style="background: #333; border: 1px solid #444; color: white; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                     <i class="fas fa-search-plus"></i>
                 </button>
             </div>
-            
-            <button id="cropConfirmBtn" style="background: #00ff99; color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px;">
+
+            <button id="cropConfirmBtn"
+                style="background: #00ff99; color: #000; font-weight: bold; width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px;">
                 Confirmar Recorte
             </button>
         </div>
@@ -242,45 +247,135 @@
     <div id="profileModal" class="modal" style="z-index: 3000;">
         <div class="modal-content profile-modal">
             <span class="close" id="profileClose">&times;</span>
-            <div class="profile-header">
-                <i class="fas fa-user-circle" id="profileAvatarIcon"
-                    style="font-size: 5em; color: #ff3333; margin-bottom: 10px;"></i>
-                <img id="profileAvatarImg" onclick="openAvatarZoom(this.dataset.original || this.src)"
-                    style="width:100px; height:100px; border-radius:50%; object-fit:cover; display:none; margin: 0 auto 15px; border: 3px solid #ff3333; cursor: pointer;">
-                <h2 id="profileName">Carregando...</h2>
-            </div>
-            <div class="profile-stats">
-                <div class="profile-card">
-                    <i class="fas fa-crosshairs"></i>
-                    <h3>Kills</h3>
-                    <p id="profileKills">-</p>
-                </div>
-                <div class="profile-card">
-                    <i class="fas fa-skull"></i>
-                    <h3>Deaths</h3>
-                    <p id="profileDeaths">-</p>
-                </div>
-                <div class="profile-card">
-                    <i class="fas fa-gun"></i>
-                    <h3>Arma Favorita</h3>
-                    <div style="height: 40px; display: flex; align-items: center; justify-content: center;">
-                        <img id="profileWeaponImg" src="" style="max-width:80px; max-height: 40px; display:none;">
+
+            <div class="profile-body-layout">
+                <!-- Coluna Esquerda: Header, Stats e Relações -->
+                <div class="profile-left-col">
+                    <div class="profile-header">
+                        <i class="fas fa-user-circle" id="profileAvatarIcon"
+                            style="font-size: 5em; color: #ff3333; margin-bottom: 10px;"></i>
+                        <img id="profileAvatarImg" onclick="openAvatarZoom(this.dataset.original || this.src)"
+                            style="width:100px; height:100px; border-radius:50%; object-fit:cover; display:none; margin: 0 auto 15px; border: 3px solid #ff3333; cursor: pointer;">
+                        <h2 id="profileName">Carregando...</h2>
                     </div>
-                    <p id="profileWeapon">-</p>
+
+                    <div class="profile-stats">
+                        <div class="profile-card">
+                            <div class="profile-card-header">
+                                <i class="fas fa-crosshairs"></i>
+                                <h3>Kills</h3>
+                            </div>
+                            <div class="profile-card-body">
+                                <span class="profile-card-value" id="profileKills">-</span>
+                            </div>
+                            <div class="profile-card-footer"></div>
+                        </div>
+
+                        <div class="profile-card">
+                            <div class="profile-card-header">
+                                <i class="fas fa-skull"></i>
+                                <h3>Mortes</h3>
+                            </div>
+                            <div class="profile-card-body">
+                                <span class="profile-card-value" id="profileDeaths">-</span>
+                            </div>
+                            <div class="profile-card-footer"></div>
+                        </div>
+
+                        <div class="profile-card">
+                            <div class="profile-card-header">
+                                <i class="fas fa-balance-scale"></i>
+                                <h3>K/D</h3>
+                            </div>
+                            <div class="profile-card-body">
+                                <span class="profile-card-value" id="profileKD">-</span>
+                            </div>
+                            <div class="profile-card-footer"></div>
+                        </div>
+
+                        <div class="profile-card">
+                            <div class="profile-card-header">
+                                <i class="fas fa-stopwatch"></i>
+                                <h3>Kills/min</h3>
+                            </div>
+                            <div class="profile-card-body">
+                                <span class="profile-card-value" id="profileKillsMin">-</span>
+                            </div>
+                            <div class="profile-card-footer"></div>
+                        </div>
+
+                        <div class="profile-card">
+                            <div class="profile-card-header">
+                                <i class="fas fa-gun"></i>
+                                <h3>Melhor Arma</h3>
+                            </div>
+                            <div class="profile-card-body">
+                                <img id="profileWeaponImg" src=""
+                                    style="max-width: 70px; max-height: 35px; display: none;">
+                            </div>
+                            <div class="profile-card-footer" id="profileWeapon">-</div>
+                        </div>
+
+                        <div class="profile-card">
+                            <div class="profile-card-header">
+                                <i class="fas fa-map-marked-alt"></i>
+                                <h3>Melhor Mapa</h3>
+                            </div>
+                            <div class="profile-card-body">
+                                <img id="profileBestMapImg" src=""
+                                    style="width: 70px; height: 35px; border-radius: 4px; object-fit: cover; display: none; border: 1px solid rgba(255, 51, 51, 0.3);">
+                            </div>
+                            <div class="profile-card-footer" id="profileBestMap">-</div>
+                        </div>
+
+                        <div class="profile-card">
+                            <div class="profile-card-header">
+                                <i class="fas fa-fire"></i>
+                                <h3>Maior Seq.</h3>
+                            </div>
+                            <div class="profile-card-body">
+                                <span class="profile-card-value" id="profileMaxStreak">-</span>
+                            </div>
+                            <div class="profile-card-footer"></div>
+                        </div>
+
+                        <div class="profile-card">
+                            <div class="profile-card-header">
+                                <i class="fas fa-bullseye"></i>
+                                <h3>HS</h3>
+                            </div>
+                            <div class="profile-card-body">
+                                <span class="profile-card-value" id="profileHS">-</span>
+                            </div>
+                            <div class="profile-card-footer"></div>
+                        </div>
+                    </div>
+
+                    <div class="profile-relationships">
+                        <div class="relationship-card victim-card">
+                            <h4>Vítima Favorita</h4>
+                            <p id="profileVictim">-</p>
+                            <small id="profileVictimKills">0 kills</small>
+                        </div>
+                        <div class="relationship-card nemesis-card">
+                            <h4>Nêmesis</h4>
+                            <p id="profileNemesis">-</p>
+                            <small id="profileNemesisKills">0 mortes</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coluna Direita: Conquistas -->
+                <div class="profile-right-col">
+                    <div class="achievements-section">
+                        <h3><i class="fas fa-medal"></i> Conquistas</h3>
+                        <div class="achievements-grid" id="profileAchievements">
+                            <!-- Conquistas serão injetadas via JS -->
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="profile-relationships">
-                <div class="relationship-card victim-card">
-                    <h4>Vítima Favorita</h4>
-                    <p id="profileVictim">-</p>
-                    <small id="profileVictimKills">0 kills</small>
-                </div>
-                <div class="relationship-card nemesis-card">
-                    <h4>Nêmesis</h4>
-                    <p id="profileNemesis">-</p>
-                    <small id="profileNemesisKills">0 mortes</small>
-                </div>
-            </div>
+
         </div>
     </div>
 
@@ -358,10 +453,12 @@
     <!-- Modal de Zoom do Avatar -->
     <div id="avatarZoomModal" class="modal" onclick="closeAvatarZoom()"
         style="display:none; z-index: 5000; background: rgba(0,0,0,0.95);">
-        <div style="position: relative; max-width: 90%; max-height: 90%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div
+            style="position: relative; max-width: 90%; max-height: 90%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
             <img id="zoomedAvatarImg" src=""
                 style="max-width: 90vw; max-height: 80vh; border: 3px solid #00ff99; border-radius: 12px; box-shadow: 0 0 30px rgba(0, 255, 153, 0.4); object-fit: contain;">
-            <p style="text-align: center; color: #00ff99; margin-top: 15px; font-weight: bold; font-size: 1.2em;">Foto de Perfil</p>
+            <p style="text-align: center; color: #00ff99; margin-top: 15px; font-weight: bold; font-size: 1.2em;">Foto
+                de Perfil</p>
         </div>
     </div>
 

@@ -20,6 +20,7 @@ GAMES_LOG = "/home/lucas/urbanterror43/q3ut4/games.log"
 STATS_FILE = os.path.join(BASE_DIR, "kills_stats.json")
 DB_FILE = "/var/www/html/urban/urban.db"
 AVATARS_DIR = "/var/www/html/urban/avatars"
+INITIAL_PARSE_DONE = False
 
 if not os.path.exists(AVATARS_DIR):
     os.makedirs(AVATARS_DIR)
@@ -36,7 +37,11 @@ def init_db():
                  (name TEXT PRIMARY KEY, avatar_url TEXT, auth_code TEXT, auth_expiry DATETIME, avatar_original_url TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS matches
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, map TEXT, date TEXT, mvp TEXT, kills INTEGER, scoreboard TEXT)''')
-    conn.commit()
+    try:
+        c.execute("ALTER TABLE matches ADD COLUMN duration REAL DEFAULT 0.0;")
+        conn.commit()
+    except Exception:
+        pass
     conn.close()
 
 init_db()
@@ -206,6 +211,8 @@ def decode_gear(gear_str):
     return ", ".join(allowed_names)
 
 def send_rcon(command):
+    if not INITIAL_PARSE_DONE:
+        return
     password = "coco"
     ip = "127.0.0.1"
     port = 27960
@@ -220,6 +227,8 @@ def send_rcon(command):
         pass
 
 def send_rcon_sync(command):
+    if not INITIAL_PARSE_DONE:
+        return ""
     password = "coco"
     ip = "127.0.0.1"
     port = 27960
@@ -253,8 +262,13 @@ def load_stats():
             global_stats[p] = {"kills": {}, "deaths": {}, "weapons": {}, "relationships": {}}
         if "relationships" not in global_stats[p]:
             global_stats[p]["relationships"] = {}
+        for key in ["hits", "headshots", "triple_kills", "max_streak"]:
+            if key not in global_stats[p]:
+                global_stats[p][key] = {}
     if "history" not in global_stats:
         global_stats["history"] = []
+    if "baselines" not in global_stats:
+        global_stats["baselines"] = {}
 
 def save_stats():
     with open(STATS_FILE, "w", encoding="utf-8") as f:
@@ -278,8 +292,315 @@ def migrate_history_to_db():
     except Exception as e:
         print("Erro na migracao de historico para o BD:", e)
 
+cached_match_stats = {}
+cached_match_stats_lock = threading.Lock()
+
+def get_match_stats():
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT mvp, scoreboard, duration FROM matches")
+    rows = c.fetchall()
+    conn.close()
+    
+    stats = {}
+    for mvp, scoreboard_json, duration in rows:
+        match_duration = duration if duration is not None else 0.0
+        if mvp and mvp != "Ninguém":
+            clean_mvp = clean_name(mvp)
+            if clean_mvp not in stats:
+                stats[clean_mvp] = { "matches": 0, "mvps": 0, "max_kills": 0, "playtime": 0.0 }
+            stats[clean_mvp]["mvps"] += 1
+            
+        if scoreboard_json:
+            try:
+                scoreboard = json.loads(scoreboard_json)
+                for entry in scoreboard:
+                    p = clean_name(entry["player"])
+                    if p not in stats:
+                        stats[p] = { "matches": 0, "mvps": 0, "max_kills": 0, "playtime": 0.0 }
+                    stats[p]["matches"] += 1
+                    stats[p]["max_kills"] = max(stats[p]["max_kills"], entry.get("kills", 0))
+                    stats[p]["playtime"] += match_duration
+            except Exception:
+                pass
+    return stats
+
+def get_player_best_map(player_name):
+    player_clean = clean_name(player_name)
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+    c.execute("SELECT map, scoreboard FROM matches")
+    rows = c.fetchall()
+    conn.close()
+    
+    map_kills = {}
+    for map_name, scoreboard_json in rows:
+        if not scoreboard_json:
+            continue
+        try:
+            sb = json.loads(scoreboard_json)
+            for entry in sb:
+                if clean_name(entry["player"]) == player_clean:
+                    map_kills[map_name] = map_kills.get(map_name, 0) + entry.get("kills", 0)
+        except Exception:
+            pass
+    if not map_kills:
+        return "Nenhum"
+    return max(map_kills, key=map_kills.get)
+
+def update_cached_match_stats():
+    global cached_match_stats
+    try:
+        stats = get_match_stats()
+        with cached_match_stats_lock:
+            cached_match_stats = stats
+        print(f"[INFO] Cached match stats updated for {len(stats)} players")
+    except Exception as e:
+        print("Erro ao atualizar cached_match_stats:", e)
+
+def int_to_roman(num):
+    if num <= 0:
+        return ""
+    val = [
+        1000, 900, 500, 400,
+        100, 90, 50, 40,
+        10, 9, 5, 4,
+        1
+    ]
+    syb = [
+        "M", "CM", "D", "CD",
+        "C", "XC", "L", "XL",
+        "X", "IX", "V", "IV",
+        "I"
+    ]
+    roman_num = ''
+    i = 0
+    while num > 0:
+        for _ in range(num // val[i]):
+            roman_num += syb[i]
+            num -= val[i]
+        i += 1
+    return roman_num
+
+def calc_infinite_achievement(value, base):
+    import math
+    if base <= 0:
+        return {"unlocked": False, "level": 0, "roman": "", "current": value, "target": base}
+    if value < base:
+        return {
+            "unlocked": False,
+            "level": 0,
+            "roman": "",
+            "current": value,
+            "target": base
+        }
+    level = 1 + int(math.log2(value / base))
+    next_target = base * (2 ** level)
+    return {
+        "unlocked": True,
+        "level": level,
+        "roman": int_to_roman(level),
+        "current": value,
+        "target": next_target
+    }
+
+def check_achievements(player, stats_all, player_match_stats):
+    import math
+    baselines = global_stats.get("baselines", {}).get(player, {})
+    
+    kills = max(0, stats_all.get("kills", {}).get(player, 0) - baselines.get("kills", 0))
+    deaths = max(0, stats_all.get("deaths", {}).get(player, 0) - baselines.get("deaths", 0))
+    kd = kills / deaths if deaths > 0 else kills
+    
+    weapons = stats_all.get("weapons", {}).get(player, {})
+    b_sniper = baselines.get("sniper_kills", 0)
+    b_pistol = baselines.get("pistol_kills", 0)
+    b_auto = baselines.get("auto_kills", 0)
+    b_shotgun = baselines.get("shotgun_kills", 0)
+    b_grenade = baselines.get("grenade_kills", 0)
+    b_knife = baselines.get("knife_kills", 0)
+    b_knife_thrown = baselines.get("knife_thrown_kills", 0)
+    
+    sniper_kills = max(0, weapons.get("UT_MOD_PSG1", 0) + weapons.get("UT_MOD_SR8", 0) + weapons.get("UT_MOD_FRF1", 0) - b_sniper)
+    pistol_kills = max(0, (weapons.get("UT_MOD_BERETTA", 0) + weapons.get("UT_MOD_DEAGLE", 0) + 
+                          weapons.get("UT_MOD_GLOCK", 0) + weapons.get("UT_MOD_COLT1911", 0) + 
+                          weapons.get("UT_MOD_MAGNUM", 0)) - b_pistol)
+    auto_kills = max(0, (weapons.get("UT_MOD_AK103", 0) + weapons.get("UT_MOD_LR300", 0) + 
+                        weapons.get("UT_MOD_G36", 0) + weapons.get("UT_MOD_M4", 0) + 
+                        weapons.get("UT_MOD_NEGEV", 0) + weapons.get("UT_MOD_MP5K", 0) + 
+                        weapons.get("UT_MOD_UMP45", 0) + weapons.get("UT_MOD_MAC11", 0) + 
+                        weapons.get("UT_MOD_P90", 0)) - b_auto)
+    shotgun_kills = max(0, weapons.get("UT_MOD_SPAS", 0) + weapons.get("UT_MOD_BENELLI", 0) - b_shotgun)
+    grenade_kills = max(0, weapons.get("UT_MOD_HEGRENADE", 0) + weapons.get("UT_MOD_HK69", 0) + weapons.get("UT_MOD_HK69_HIT", 0) - b_grenade)
+    knife_kills = max(0, weapons.get("UT_MOD_KNIFE", 0) + weapons.get("UT_MOD_KNIFE_THROWN", 0) + weapons.get("UT_MOD_BLED", 0) - b_knife)
+    knife_thrown_kills = max(0, weapons.get("UT_MOD_KNIFE_THROWN", 0) - b_knife_thrown)
+    
+    relationships = stats_all.get("relationships", {}).get(player, {})
+    max_kills_single_victim = max(relationships.values()) if relationships else 0
+    max_kills_single_victim = max(0, max_kills_single_victim - baselines.get("max_kills_single_victim", 0))
+    victim_collector_val = max(0, len(relationships) - baselines.get("relationships_count", 0))
+    
+    matches_played = max(0, player_match_stats.get("matches", 0) - baselines.get("matches", 0))
+    mvps = max(0, player_match_stats.get("mvps", 0) - baselines.get("mvps", 0))
+    max_kills_in_match = max(0, player_match_stats.get("max_kills", 0) - baselines.get("max_kills_in_match", 0))
+    
+    triple_kills = max(0, stats_all.get("triple_kills", {}).get(player, 0) - baselines.get("triple_kills", 0))
+    max_streak = max(0, stats_all.get("max_streak", {}).get(player, 0) - baselines.get("max_streak", 0))
+    hits = max(0, stats_all.get("hits", {}).get(player, 0) - baselines.get("hits", 0))
+    headshots = max(0, stats_all.get("headshots", {}).get(player, 0) - baselines.get("headshots", 0))
+    hs_ratio = (headshots / hits) * 100.0 if hits >= 50 else 0.0
+    
+    # HS Ratio custom achievements logic
+    if hits < 50 or hs_ratio < 20.0:
+        hs_ach = {"unlocked": False, "level": 0, "roman": "", "current": round(hs_ratio, 1), "target": 20.0}
+    else:
+        hs_lvl = min(int((hs_ratio - 20) / 10) + 1, 9)
+        hs_ach = {
+            "unlocked": True,
+            "level": hs_lvl,
+            "roman": int_to_roman(hs_lvl),
+            "current": round(hs_ratio, 1),
+            "target": min(20.0 + hs_lvl * 10.0, 100.0)
+        }
+        
+    # K/D Elite custom achievements logic
+    if kills < 100 or kd < 1.5:
+        kd_ach = {"unlocked": False, "level": 0, "roman": "", "current": round(kd, 2) if kills >= 100 else 0, "target": 1.5}
+    else:
+        kd_lvl = 1 + int(math.log2(kd / 1.5))
+        kd_ach = {
+            "unlocked": True,
+            "level": kd_lvl,
+            "roman": int_to_roman(kd_lvl),
+            "current": round(kd, 2),
+            "target": round(1.5 * (2 ** kd_lvl), 2)
+        }
+
+    achievements = {
+        "kills": calc_infinite_achievement(kills, 100),
+        "deaths": calc_infinite_achievement(deaths, 100),
+        "matches": calc_infinite_achievement(matches_played, 10),
+        "mvp": calc_infinite_achievement(mvps, 5),
+        "triple_kills": calc_infinite_achievement(triple_kills, 5),
+        "max_streak": calc_infinite_achievement(max_streak, 5),
+        "headshots": calc_infinite_achievement(headshots, 25),
+        "hs_ratio": hs_ach,
+        "weapon_sniper": calc_infinite_achievement(sniper_kills, 100),
+        "weapon_pistol": calc_infinite_achievement(pistol_kills, 100),
+        "weapon_auto": calc_infinite_achievement(auto_kills, 100),
+        "weapon_shotgun": calc_infinite_achievement(shotgun_kills, 50),
+        "weapon_grenade": calc_infinite_achievement(grenade_kills, 20),
+        "weapon_knife": calc_infinite_achievement(knife_kills, 20),
+        "knife_thrown": calc_infinite_achievement(knife_thrown_kills, 1),
+        "kd_elite": kd_ach,
+        "unbeatable": calc_infinite_achievement(max_kills_in_match, 30),
+        "nemesis_hunter": calc_infinite_achievement(max_kills_single_victim, 100),
+        "victim_collector": calc_infinite_achievement(victim_collector_val, 5)
+    }
+
+    # Calculate completionist
+    other_lvls = [ach["level"] for ach in achievements.values()]
+    min_lvl = min(other_lvls) if other_lvls else 0
+    if min_lvl == 0:
+        completionist_ach = {
+            "unlocked": False,
+            "level": 0,
+            "roman": "",
+            "current": 0,
+            "target": 1
+        }
+    else:
+        completionist_ach = {
+            "unlocked": True,
+            "level": min_lvl,
+            "roman": int_to_roman(min_lvl),
+            "current": min_lvl,
+            "target": min_lvl + 1
+        }
+
+    achievements["completionist"] = completionist_ach
+    return achievements
+
+def get_achievements_levels(all_players, stats_all, cached_stats):
+    player_levels = {}
+    for player in all_players:
+        player_clean = clean_name(player)
+        player_m_stats = cached_stats.get(player_clean, {"matches": 0, "mvps": 0, "max_kills": 0})
+        ach_results = check_achievements(player_clean, stats_all, player_m_stats)
+        player_levels[player_clean] = {ach_id: info["level"] for ach_id, info in ach_results.items()}
+    return player_levels
+
+ACHIEVEMENTS_NAMES = {
+    "kills": "Exterminador",
+    "deaths": "Saco de Pancadas",
+    "matches": "Veterano",
+    "mvp": "Destaque",
+    "triple_kills": "Multi-kill",
+    "max_streak": "Imbatível",
+    "headshots": "Atirador de Elite",
+    "hs_ratio": "Mira Perfeita",
+    "weapon_sniper": "Olho de Águia",
+    "weapon_pistol": "Pistoleiro",
+    "weapon_auto": "Rambo",
+    "weapon_shotgun": "Impacto Próximo",
+    "weapon_grenade": "Mestre da Explosão",
+    "weapon_knife": "Assassino Furtivo",
+    "knife_thrown": "Cirúrgico",
+    "kd_elite": "Soldado de Elite",
+    "unbeatable": "Massacre",
+    "nemesis_hunter": "Caçador de Nêmesis",
+    "victim_collector": "Colecionador de Almas",
+    "completionist": "Perfeccionista"
+}
+
+def update_and_check_achievement(player, update_fn):
+    player_clean = clean_name(player)
+    with cached_match_stats_lock:
+        p_m_stats = cached_match_stats.get(player_clean, {"matches": 0, "mvps": 0, "max_kills": 0})
+    
+    # Check stats before update
+    ach_before = check_achievements(player_clean, global_stats["all"], p_m_stats)
+    
+    # Run update function
+    update_fn()
+    
+    # Check stats after update
+    ach_after = check_achievements(player_clean, global_stats["all"], p_m_stats)
+    
+    # Compare levels
+    for ach_id, info_after in ach_after.items():
+        info_before = ach_before.get(ach_id, {"level": 0})
+        if info_after["level"] > info_before["level"]:
+            lvl = info_after["level"]
+            roman = info_after["roman"]
+            
+            # Compute rarity
+            all_players = set(global_stats["all"].get("kills", {}).keys()) | set(global_stats["all"].get("deaths", {}).keys())
+            player_levels = get_achievements_levels(all_players, global_stats["all"], cached_match_stats)
+            count = sum(1 for p in player_levels.values() if p.get(ach_id, 0) >= lvl)
+            pct = round((count / len(all_players)) * 100, 1) if all_players else 100.0
+            
+            if pct < 5.0:
+                color = "^3"
+                rarity_name = "Lendaria"
+            elif pct < 20.0:
+                color = "^6"
+                rarity_name = "Epica"
+            elif pct < 50.0:
+                color = "^5"
+                rarity_name = "Rara"
+            else:
+                color = "^7"
+                rarity_name = "Comum"
+                
+            ach_name = ACHIEVEMENTS_NAMES.get(ach_id, ach_id)
+            msg = f'say "^2{player} ^7conquistou {color}{ach_name} {roman} ^7({pct}% - {rarity_name})"'
+            send_rcon(msg)
+
 def parse_logs_worker():
     current_match_stats = {}
+    current_streaks = {}
+    last_line_time = 0.0
     while True:
         try:
             with stats_lock:
@@ -303,6 +624,11 @@ def parse_logs_worker():
                             new_data = True
                             line = raw.decode("utf-8", errors="replace")
                             
+                            # Extract line timestamp
+                            m_time = re.match(r"^\s*(\d+):(\d+)", line)
+                            if m_time:
+                                last_line_time = int(m_time.group(1)) + int(m_time.group(2)) / 60.0
+                            
                             m_init = INIT_RE.search(line)
                             if m_init:
                                 params_str = m_init.group(1)
@@ -315,6 +641,7 @@ def parse_logs_worker():
                                 gear = params.get('g_gear', '0').strip()
                                 weapons_text = decode_gear(gear)
                                 current_match_stats = {}
+                                last_line_time = 0.0
                                 
                                 msg = f"^2Armas: ^7{weapons_text}"
                                 with open("bot_debug.log", "a") as dbg:
@@ -367,6 +694,14 @@ def parse_logs_worker():
 
                             m_shutdown = re.search(r"ShutdownGame:|Exit:", line)
                             if m_shutdown:
+                                # Finalize active streaks
+                                for p, p_streak in current_streaks.items():
+                                    if p_streak > 0:
+                                        for period in ["all", "daily"]:
+                                            stats = global_stats[period]
+                                            stats["max_streak"][p] = max(stats["max_streak"].get(p, 0), p_streak)
+                                current_streaks = {}
+
                                 if current_map_name and current_match_stats:
                                     mvp = "Ninguém"
                                     mvp_kills = 0
@@ -384,17 +719,75 @@ def parse_logs_worker():
                                             "deaths": p_stats["deaths"]
                                         })
                                     scoreboard_data.sort(key=lambda x: (-x["kills"], x["deaths"]))
+
+                                    # Capture achievements level before database update
+                                    ach_before = {}
+                                    with cached_match_stats_lock:
+                                        for p in current_match_stats.keys():
+                                            p_clean = clean_name(p)
+                                            p_m_stats = cached_match_stats.get(p_clean, {"matches": 0, "mvps": 0, "max_kills": 0})
+                                            ach_before[p_clean] = check_achievements(p_clean, global_stats["all"], p_m_stats)
                                     
                                     try:
                                         conn = sqlite3.connect(DB_FILE)
                                         c = conn.cursor()
-                                        c.execute("INSERT INTO matches (map, date, mvp, kills, scoreboard) VALUES (?, ?, ?, ?, ?)",
-                                                  (current_map_name, datetime.now().strftime("%Y-%m-%d %H:%M"), mvp, mvp_kills, json.dumps(scoreboard_data)))
+                                        c.execute("INSERT INTO matches (map, date, mvp, kills, scoreboard, duration) VALUES (?, ?, ?, ?, ?, ?)",
+                                                  (current_map_name, datetime.now().strftime("%Y-%m-%d %H:%M"), mvp, mvp_kills, json.dumps(scoreboard_data), last_line_time))
                                         conn.commit()
                                         conn.close()
+                                        update_cached_match_stats()
                                     except Exception as e:
                                         print("Erro ao salvar partida no BD:", e)
+
+                                    # Compare achievements level after database update and announce
+                                    with cached_match_stats_lock:
+                                        for p in current_match_stats.keys():
+                                            p_clean = clean_name(p)
+                                            p_m_stats = cached_match_stats.get(p_clean, {"matches": 0, "mvps": 0, "max_kills": 0})
+                                            ach_after = check_achievements(p_clean, global_stats["all"], p_m_stats)
+                                            
+                                            for ach_id, info_after in ach_after.items():
+                                                info_before = ach_before.get(p_clean, {}).get(ach_id, {"level": 0})
+                                                if info_after["level"] > info_before["level"]:
+                                                    lvl = info_after["level"]
+                                                    roman = info_after["roman"]
+                                                    
+                                                    # Compute rarity
+                                                    all_players = set(global_stats["all"].get("kills", {}).keys()) | set(global_stats["all"].get("deaths", {}).keys())
+                                                    player_levels = get_achievements_levels(all_players, global_stats["all"], cached_match_stats)
+                                                    count = sum(1 for pl in player_levels.values() if pl.get(ach_id, 0) >= lvl)
+                                                    pct = round((count / len(all_players)) * 100, 1) if all_players else 100.0
+                                                    
+                                                    if pct < 5.0:
+                                                        color = "^3"
+                                                        rarity_name = "Lendaria"
+                                                    elif pct < 20.0:
+                                                        color = "^6"
+                                                        rarity_name = "Epica"
+                                                    elif pct < 50.0:
+                                                        color = "^5"
+                                                        rarity_name = "Rara"
+                                                    else:
+                                                        color = "^7"
+                                                        rarity_name = "Comum"
+                                                        
+                                                    ach_name = ACHIEVEMENTS_NAMES.get(ach_id, ach_id)
+                                                    msg = f'say "^2{p} ^7conquistou {color}{ach_name} {roman} ^7({pct}% - {rarity_name})"'
+                                                    send_rcon(msg)
                                 current_match_stats = {}
+                                continue
+
+                            # Detect hits
+                            m_hit = re.search(r"Hit:\s+\d+\s+\d+\s+\d+\s+\d+:\s+(.+?)\s+hit\s+(.+?)\s+in\s+the\s+(\w+)", line)
+                            if m_hit:
+                                attacker, victim, location = m_hit.group(1), m_hit.group(2), m_hit.group(3)
+                                def do_hit_update():
+                                    for period in ["all", "daily"]:
+                                        stats = global_stats[period]
+                                        stats["hits"][attacker] = stats["hits"].get(attacker, 0) + 1
+                                        if location in ["Head", "Helmet"]:
+                                            stats["headshots"][attacker] = stats["headshots"].get(attacker, 0) + 1
+                                update_and_check_achievement(attacker, do_hit_update)
                                 continue
 
                             m = KILL_RE.search(line)
@@ -402,19 +795,43 @@ def parse_logs_worker():
                                 continue
                             killer, victim, weapon = m.group(1), m.group(2), m.group(3)
                             
-                            for period in ["all", "daily"]:
-                                stats = global_stats[period]
-                                stats["deaths"][victim] = stats["deaths"].get(victim, 0) + 1
-                                if killer != victim and killer != "<world>":
-                                    stats["kills"][killer] = stats["kills"].get(killer, 0) + 1
-                                    if killer not in stats["weapons"]:
-                                        stats["weapons"][killer] = {}
-                                    stats["weapons"][killer][weapon] = stats["weapons"][killer].get(weapon, 0) + 1
+                            # Update killstreaks & stats
+                            victim_streak = current_streaks.get(victim, 0)
+                            
+                            def do_victim_update():
+                                if victim_streak > 0:
+                                    for period in ["all", "daily"]:
+                                        stats = global_stats[period]
+                                        stats["max_streak"][victim] = max(stats["max_streak"].get(victim, 0), victim_streak)
+                                current_streaks[victim] = 0
+                                
+                                for period in ["all", "daily"]:
+                                    stats = global_stats[period]
+                                    stats["deaths"][victim] = stats["deaths"].get(victim, 0) + 1
+                            
+                            update_and_check_achievement(victim, do_victim_update)
+                            
+                            if killer != victim and killer != "<world>":
+                                def do_killer_update():
+                                    for period in ["all", "daily"]:
+                                        stats = global_stats[period]
+                                        stats["kills"][killer] = stats["kills"].get(killer, 0) + 1
+                                        if killer not in stats["weapons"]:
+                                            stats["weapons"][killer] = {}
+                                        stats["weapons"][killer][weapon] = stats["weapons"][killer].get(weapon, 0) + 1
+                                        
+                                        if killer not in stats["relationships"]:
+                                            stats["relationships"][killer] = {}
+                                        stats["relationships"][killer][victim] = stats["relationships"][killer].get(victim, 0) + 1
                                     
-                                    if killer not in stats["relationships"]:
-                                        stats["relationships"][killer] = {}
-                                    stats["relationships"][killer][victim] = stats["relationships"][killer].get(victim, 0) + 1
-                                    
+                                    current_streaks[killer] = current_streaks.get(killer, 0) + 1
+                                    if current_streaks[killer] % 3 == 0:
+                                        for period in ["all", "daily"]:
+                                            stats = global_stats[period]
+                                            stats["triple_kills"][killer] = stats["triple_kills"].get(killer, 0) + 1
+                                
+                                update_and_check_achievement(killer, do_killer_update)
+                            
                             if victim not in current_match_stats:
                                 current_match_stats[victim] = {"kills": 0, "deaths": 0}
                             current_match_stats[victim]["deaths"] += 1
@@ -427,6 +844,9 @@ def parse_logs_worker():
                         if new_data:
                             global_stats["offset"] = f.tell()
                             save_stats()
+                
+                global INITIAL_PARSE_DONE
+                INITIAL_PARSE_DONE = True
         except Exception as e:
             print("Erro no log parser:", e)
         time.sleep(5)
@@ -559,10 +979,10 @@ class VoteServer(SimpleHTTPRequestHandler):
                         name = parts[3]
                         if name != "^7":
                             # Limpar códigos de cor para o front-end
-                            clean_name = re.sub(r'\^\d', '', name)
-                            avatar_url, avatar_orig = get_player_avatars(clean_name)
+                            name_clean = re.sub(r'\^\d', '', name)
+                            avatar_url, avatar_orig = get_player_avatars(name_clean)
                             players.append({
-                                "name": clean_name, 
+                                "name": name_clean, 
                                 "ping": ping, 
                                 "score": parts[1],
                                 "avatar": avatar_url,
@@ -603,18 +1023,71 @@ class VoteServer(SimpleHTTPRequestHandler):
                 if weapons:
                     top_weapon = max(weapons, key=weapons.get).replace("UT_MOD_", "")
                     
+                # Calculate achievements
+                all_players = set(stats.get("kills", {}).keys()) | set(stats.get("deaths", {}).keys())
+                with cached_match_stats_lock:
+                    match_stats = cached_match_stats
+                
+                player_levels = get_achievements_levels(all_players, stats, match_stats)
+                
+                player_clean = clean_name(player_name)
+                player_m_stats = match_stats.get(player_clean, {"matches": 0, "mvps": 0, "max_kills": 0})
+                player_ach_results = check_achievements(player_clean, stats, player_m_stats)
+                
+                achievements_data = {}
+                total_players = len(all_players)
+                for ach_id, ach_info in player_ach_results.items():
+                    current_lvl = ach_info["level"]
+                    target_lvl = max(1, current_lvl)
+                    
+                    count_at_least_target = sum(1 for p in player_levels.values() if p.get(ach_id, 0) >= target_lvl)
+                    pct = round((count_at_least_target / total_players) * 100, 1) if total_players > 0 else 0.0
+                    
+                    achievements_data[ach_id] = {
+                        "unlocked": ach_info["unlocked"],
+                        "level": current_lvl,
+                        "roman": ach_info["roman"],
+                        "current": ach_info["current"],
+                        "target": ach_info["target"],
+                        "percent": pct
+                    }
+
+                # Best map
+                best_map = get_player_best_map(player_name)
+                
+                # Max streak
+                max_streak = stats.get("max_streak", {}).get(player_name, 0)
+                
+                # Playtime & Kills per min
+                playtime = player_m_stats.get("playtime", 0.0)
+                kills = stats.get("kills", {}).get(player_name, 0)
+                deaths = stats.get("deaths", {}).get(player_name, 0)
+                kd = round(kills / deaths, 2) if deaths > 0 else float(kills)
+                kills_per_min = round(kills / playtime, 2) if playtime > 0.0 else 0.0
+
+                # Compute HS percentage
+                hits_val = stats.get("hits", {}).get(player_name, 0)
+                hs_val = stats.get("headshots", {}).get(player_name, 0)
+                hs_percent = round((hs_val / hits_val) * 100, 1) if hits_val > 0 else 0.0
+
                 avatar_url, avatar_orig = get_player_avatars(player_name)
                 data = {
                     "player": player_name,
-                    "kills": stats.get("kills", {}).get(player_name, 0),
-                    "deaths": stats.get("deaths", {}).get(player_name, 0),
+                    "kills": kills,
+                    "deaths": deaths,
+                    "kd": kd,
+                    "killsPerMin": kills_per_min,
                     "topWeapon": top_weapon,
+                    "bestMap": best_map,
+                    "maxStreak": max_streak,
                     "favoriteVictim": fav_victim,
                     "favoriteVictimKills": fav_victim_kills,
                     "nemesis": nemesis,
                     "nemesisKills": nemesis_kills,
                     "avatar": avatar_url,
-                    "avatar_original": avatar_orig or avatar_url
+                    "avatar_original": avatar_orig or avatar_url,
+                    "hsPercent": hs_percent,
+                    "achievements": achievements_data
                 }
             self.send_response(200)
             self.end_cors()
@@ -778,6 +1251,11 @@ class VoteServer(SimpleHTTPRequestHandler):
                         if count1 == 0 and count2 == 0:
                             new_cfg_content += f"\nmap {first_map}\n"
 
+                        # Garantir que g_loghits seja sempre "1"
+                        new_cfg_content, count_lh = re.subn(r'(?m)^(\s*set\s+)?g_loghits\s+.*', 'set g_loghits "1"', new_cfg_content)
+                        if count_lh == 0:
+                            new_cfg_content += '\nset g_loghits "1"\n'
+
                         # Extrai g_gear e g_gametype do mapcycle para sincronizar no primeiro mapa
                         # Busca o bloco do primeiro mapa no mapcycle_data
                         map_block_match = re.search(rf"^{re.escape(first_map)}\s*\n\{{(.*?)\}}", mapcycle_data, re.DOTALL | re.MULTILINE)
@@ -932,15 +1410,17 @@ class VoteServer(SimpleHTTPRequestHandler):
             self.wfile.write(str(e).encode("utf-8"))
 
 
-os.chdir(BASE_DIR)
+if __name__ == "__main__":
+    os.chdir(BASE_DIR)
 
-HTTPServer.allow_reuse_address = True
-server = HTTPServer((HOST, PORT), VoteServer)
+    HTTPServer.allow_reuse_address = True
+    server = HTTPServer((HOST, PORT), VoteServer)
 
-load_stats()
-migrate_history_to_db()
-t = threading.Thread(target=parse_logs_worker, daemon=True)
-t.start()
+    load_stats()
+    migrate_history_to_db()
+    update_cached_match_stats()
+    t = threading.Thread(target=parse_logs_worker, daemon=True)
+    t.start()
 
-print(f"Servidor rodando em http://{HOST}:{PORT}")
-server.serve_forever()
+    print(f"Servidor rodando em http://{HOST}:{PORT}")
+    server.serve_forever()

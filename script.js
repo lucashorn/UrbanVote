@@ -1060,6 +1060,109 @@ document.getElementById("allMatchesClose").onclick = () => {
     document.getElementById("allMatchesModal").style.display = "none";
 };
 
+const ACHIEVEMENTS_METADATA = {
+    "kills": {
+        name: "Exterminador",
+        description: "Eliminações no total. Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-crosshairs"
+    },
+    "deaths": {
+        name: "Saco de Pancadas",
+        description: "Mortes no total. Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-skull"
+    },
+    "matches": {
+        name: "Veterano",
+        description: "Partidas completadas. Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-gamepad"
+    },
+    "mvp": {
+        name: "Destaque",
+        description: "Vezes sendo o MVP da partida. Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-award"
+    },
+    "triple_kills": {
+        name: "Multi-kill",
+        description: "Vezes que matou 3 inimigos sem morrer (Triple Kill). Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-fire-flame-curved"
+    },
+    "max_streak": {
+        name: "Imbatível",
+        description: "Sequência de eliminações sem morrer. Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-bolt"
+    },
+    "headshots": {
+        name: "Atirador de Elite",
+        description: "Eliminações com tiros na cabeça (Headshot). Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-bullseye"
+    },
+    "hs_ratio": {
+        name: "Mira Perfeita",
+        description: "Porcentagem de tiros na cabeça (mínimo 50 acertos). Cada nível exige +10% de precisão.",
+        icon: "fas fa-crosshairs"
+    },
+    "weapon_sniper": {
+        name: "Olho de Águia",
+        description: "Eliminações com Rifles Sniper (PSG1, SR8, FRF1). Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-crosshairs"
+    },
+    "weapon_pistol": {
+        name: "Pistoleiro",
+        description: "Eliminações com Pistolas. Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-gun"
+    },
+    "weapon_auto": {
+        name: "Rambo",
+        description: "Eliminações com Armas Automáticas. Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-shield-halved"
+    },
+    "weapon_shotgun": {
+        name: "Impacto Próximo",
+        description: "Eliminações com Escopetas (SPAS, Benelli). Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-bullseye"
+    },
+    "weapon_grenade": {
+        name: "Mestre da Explosão",
+        description: "Eliminações com Granadas (HE, HK69). Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-bomb"
+    },
+    "weapon_knife": {
+        name: "Assassino Furtivo",
+        description: "Eliminações com a Faca (Knife). Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-skull"
+    },
+    "knife_thrown": {
+        name: "Cirúrgico",
+        description: "Eliminações arremessando a faca. Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-bolt"
+    },
+    "kd_elite": {
+        name: "Soldado de Elite",
+        description: "Mantenha um K/D alto (mínimo 100 kills). Cada nível dobra o K/D exigido.",
+        icon: "fas fa-shield-halved"
+    },
+    "unbeatable": {
+        name: "Massacre",
+        description: "Eliminações em uma única partida. Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-fire-flame-curved"
+    },
+    "nemesis_hunter": {
+        name: "Caçador de Nêmesis",
+        description: "Elimine o mesmo jogador 100 vezes. Cada nível dobra o objetivo anterior.",
+        icon: "fas fa-user-ninja"
+    },
+    "victim_collector": {
+        name: "Colecionador de Almas",
+        description: "Elimine diferentes jogadores. Cada nível dobra a quantidade exigida.",
+        icon: "fas fa-people-group"
+    },
+    "completionist": {
+        name: "Perfeccionista",
+        description: "Desbloqueie e atinja o mesmo nível em TODAS as outras 19 conquistas.",
+        icon: "fas fa-crown"
+    }
+};
+
 // --- Profile Modal ---
 async function openProfile(playerName) {
     const modal = document.getElementById("profileModal");
@@ -1069,6 +1172,12 @@ async function openProfile(playerName) {
     // Reset avatar display
     document.getElementById("profileAvatarIcon").style.display = "block";
     document.getElementById("profileAvatarImg").style.display = "none";
+
+    // Clear old achievements
+    const achContainer = document.getElementById("profileAchievements");
+    if (achContainer) {
+        achContainer.innerHTML = "";
+    }
 
     try {
         const res = await fetch(`${API_URL}/profile?player=${encodeURIComponent(playerName)}`);
@@ -1083,6 +1192,20 @@ async function openProfile(playerName) {
 
         document.getElementById("profileKills").innerText = data.kills;
         document.getElementById("profileDeaths").innerText = data.deaths;
+        document.getElementById("profileKD").innerText = data.kd !== undefined ? data.kd : "-";
+        document.getElementById("profileKillsMin").innerText = data.killsPerMin !== undefined ? data.killsPerMin : "-";
+        document.getElementById("profileBestMap").innerText = data.bestMap || "Nenhum";
+        document.getElementById("profileMaxStreak").innerText = `${data.maxStreak || 0} kills`;
+        document.getElementById("profileHS").innerText = `${data.hsPercent || 0.0}%`;
+
+        const mapImgEl = document.getElementById("profileBestMapImg");
+        if (data.bestMap && data.bestMap !== "Nenhum") {
+            mapImgEl.src = getMapImage(data.bestMap);
+            mapImgEl.style.display = "block";
+            mapImgEl.onerror = () => { mapImgEl.style.display = "none"; };
+        } else {
+            mapImgEl.style.display = "none";
+        }
 
         const topWeapon = data.topWeapon || "N/A";
         document.getElementById("profileWeapon").innerText = topWeapon;
@@ -1104,6 +1227,54 @@ async function openProfile(playerName) {
         document.getElementById("profileVictimKills").innerText = `${data.favoriteVictimKills} kills`;
         document.getElementById("profileNemesis").innerText = data.nemesis;
         document.getElementById("profileNemesisKills").innerText = `${data.nemesisKills} mortes`;
+
+        // Render achievements grid
+        if (data.achievements && achContainer) {
+            Object.keys(ACHIEVEMENTS_METADATA).forEach(id => {
+                const meta = ACHIEVEMENTS_METADATA[id];
+                const playerAch = data.achievements[id] || { unlocked: false, level: 0, roman: "", current: 0, target: 100, percent: 0.0 };
+                
+                const item = document.createElement("div");
+                item.className = "achievement-item";
+                
+                if (!playerAch.unlocked) {
+                    item.classList.add("locked");
+                } else {
+                    const pct = playerAch.percent;
+                    if (pct < 5) {
+                        item.classList.add("legendary");
+                    } else if (pct < 20) {
+                        item.classList.add("epic");
+                    } else if (pct < 50) {
+                        item.classList.add("rare");
+                    } else {
+                        item.classList.add("common");
+                    }
+                    
+                    // Render level badge
+                    if (playerAch.roman) {
+                        const badge = document.createElement("span");
+                        badge.className = "achievement-level";
+                        badge.innerText = playerAch.roman;
+                        item.appendChild(badge);
+                    }
+                }
+                
+                const lvlText = playerAch.unlocked ? `Nível ${playerAch.roman} (${playerAch.level})` : "Bloqueado";
+                const rarityText = playerAch.percent < 5 ? "Lendária" : playerAch.percent < 20 ? "Épica" : playerAch.percent < 50 ? "Rara" : "Comum";
+                const progressText = `Progresso: ${playerAch.current} / ${playerAch.target}`;
+                const rarityPctText = `Raridade: ${playerAch.percent}% dos jogadores (${rarityText})`;
+                
+                const tooltipText = `${meta.name} - ${lvlText}\n${meta.description}\n\n${progressText}\n${rarityPctText}`;
+                item.setAttribute("data-tooltip", tooltipText);
+                
+                const icon = document.createElement("i");
+                icon.className = meta.icon;
+                item.appendChild(icon);
+                
+                achContainer.appendChild(item);
+            });
+        }
     } catch (e) {
         console.error(e);
         document.getElementById("profileName").innerText = "Erro ao carregar";
