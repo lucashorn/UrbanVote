@@ -1022,6 +1022,8 @@ table.dataTable tbody td {
     max-width: 1050px;
     width: 97%;
     background: linear-gradient(145deg, #1e1e1e, #141414);
+    max-height: none;
+    overflow-y: visible;
 }
 
 .profile-header {
