@@ -196,8 +196,8 @@
 
             <div class="button-grid" id="modeButtons"></div>
 
-            <label>Tipo de arma</label>
-            <div class="weapon-grid">
+            <label id="labelWeapon">Tipo de arma</label>
+            <div class="weapon-grid" id="weaponGrid">
                 <button class="weapon-btn" data-weapon="Somente Sniper">Sniper</button>
                 <button class="weapon-btn" data-weapon="Somente Pistola">Pistola</button>
                 <button class="weapon-btn" data-weapon="Somente Granada">Lança Granada</button>
@@ -205,13 +205,24 @@
                 <button class="weapon-btn" data-weapon="Personalizadas">Personalizadas</button>
             </div>
 
-            <label>Friendly Fire</label>
-            <div class="ff-grid">
-                <button class="ff-btn active" data-ff="0">Sem FF</button>
-                <button class="ff-btn" data-ff="1">Com FF</button>
-            </div>
+             <label id="labelFF">Friendly Fire</label>
+             <div class="ff-grid" id="ffGrid">
+                 <button class="ff-btn active" data-ff="0">Sem FF</button>
+                 <button class="ff-btn" data-ff="1">Com FF</button>
+             </div>
 
-            <button id="confirmVote">Confirmar Voto</button>
+             <div class="limits-row">
+                 <div class="limit-col">
+                     <label for="voteTimelimit">Tempo (minutos)</label>
+                     <input type="number" id="voteTimelimit" min="0" placeholder="5" class="limit-input">
+                 </div>
+                 <div class="limit-col">
+                     <label for="voteFraglimit">Limite de Kills</label>
+                     <input type="number" id="voteFraglimit" min="0" placeholder="10" class="limit-input">
+                 </div>
+             </div>
+
+             <button id="confirmVote">Confirmar Voto</button>
         </div>
     </div>
 

@@ -210,6 +210,24 @@ def decode_gear(gear_str):
         
     return ", ".join(allowed_names)
 
+def get_default_limits():
+    timelimit = 5
+    fraglimit = 10
+    cfg_path = "/home/lucas/Documentos/urbanterror43/q3ut4/server.cfg"
+    if os.path.exists(cfg_path):
+        try:
+            with open(cfg_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            m_time = re.search(r'(?m)^(\s*set\s+)?timelimit\s+"?(\d+)"?', content)
+            m_frag = re.search(r'(?m)^(\s*set\s+)?fraglimit\s+"?(\d+)"?', content)
+            if m_time:
+                timelimit = int(m_time.group(2))
+            if m_frag:
+                fraglimit = int(m_frag.group(2))
+        except Exception as e:
+            print("Erro ao ler limites do server.cfg:", e)
+    return timelimit, fraglimit
+
 def send_rcon(command):
     if not INITIAL_PARSE_DONE:
         return
@@ -930,11 +948,17 @@ class VoteServer(SimpleHTTPRequestHandler):
             # Nome do processo truncado no Linux (15 chars): "Quake3-UrT-Ded."
             is_running = subprocess.call(["pgrep", "Quake3-UrT-Ded."], stdout=subprocess.DEVNULL) == 0
             
+            t_lim, f_lim = get_default_limits()
+            
             self.send_response(200)
             self.end_cors()
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"running": is_running}).encode("utf-8"))
+            self.wfile.write(json.dumps({
+                "running": is_running,
+                "default_timelimit": t_lim,
+                "default_fraglimit": f_lim
+            }).encode("utf-8"))
             return
 
         if self.path == "/server-live":
@@ -1265,6 +1289,8 @@ class VoteServer(SimpleHTTPRequestHandler):
                             gametype_match = re.search(r"g_gametype\s+(\d+)", block_content)
                             ff_match = re.search(r"g_friendlyfire\s+(\d+)", block_content)
                             roundlimit_match = re.search(r"roundlimit\s+(\d+)", block_content)
+                            timelimit_match = re.search(r"timelimit\s+(\d+)", block_content)
+                            fraglimit_match = re.search(r"fraglimit\s+(\d+)", block_content)
                             
                             if gear_match:
                                 gear_val = gear_match.group(1)
@@ -1282,6 +1308,14 @@ class VoteServer(SimpleHTTPRequestHandler):
                                 rl_val = roundlimit_match.group(1)
                                 new_cfg_content, c = re.subn(r'(?m)^(set\s+)?roundlimit\s+\d+', r'set roundlimit ' + rl_val, new_cfg_content)
                                 if c == 0: new_cfg_content += f'\nset roundlimit {rl_val}\n'
+                            if timelimit_match:
+                                tl_val = timelimit_match.group(1)
+                                new_cfg_content, c = re.subn(r'(?m)^(\s*set\s+)?timelimit\s+\d+', r'set timelimit ' + tl_val, new_cfg_content)
+                                if c == 0: new_cfg_content += f'\nset timelimit {tl_val}\n'
+                            if fraglimit_match:
+                                fl_val = fraglimit_match.group(1)
+                                new_cfg_content, c = re.subn(r'(?m)^(\s*set\s+)?fraglimit\s+\d+', r'set fraglimit ' + fl_val, new_cfg_content)
+                                if c == 0: new_cfg_content += f'\nset fraglimit {fl_val}\n'
 
                             # Removemos o sv_joinmessage para não causar conflito
                             new_cfg_content = re.sub(r'(?m)^(set\s+)?sv_joinmessage\s+".*?"', r'set sv_joinmessage ""', new_cfg_content)
@@ -1386,13 +1420,30 @@ class VoteServer(SimpleHTTPRequestHandler):
                 self.wfile.write("Você já votou neste mapa hoje".encode("utf-8"))
                 return
 
+            mode = data.get("mode", "4")
+            weapon = data.get("weapon", "Todas as armas")
+            custom_weapons = data.get("customWeapons", [])
+            friendly_fire = data.get("friendlyFire", "0")
+            timelimit = data.get("timelimit")
+            fraglimit = data.get("fraglimit")
+
+            if mode == "11":  # Gun Game
+                weapon = "Todas as armas"
+                custom_weapons = []
+                friendly_fire = "0"
+                fraglimit = None
+            elif mode in ("1", "2"):  # LMS or FFA
+                friendly_fire = "0"
+
             votes.append({
                 "browserId": data["browserId"],
                 "map": data["map"],
-                "mode": data["mode"],
-                "weapon": data["weapon"],
-                "customWeapons": data.get("customWeapons", []),
-                "friendlyFire": data.get("friendlyFire", "0"),
+                "mode": mode,
+                "weapon": weapon,
+                "customWeapons": custom_weapons,
+                "friendlyFire": friendly_fire,
+                "timelimit": timelimit,
+                "fraglimit": fraglimit,
                 "date": today()
             })
 

@@ -45,6 +45,8 @@ let selectedFriendlyFire = "0";
 let rankingTable = null;
 let rankingExpanded = false;
 let matchHistory = [];
+let defaultTimelimit = 5;
+let defaultFraglimit = 10;
 
 function getToday() {
     return new Date().toISOString().split("T")[0];
@@ -388,10 +390,91 @@ function renderModeButtons() {
 
             btn.classList.add("active");
             selectedMode = value;
+            applyModalRestrictions();
         };
 
         container.appendChild(btn);
     });
+}
+
+function applyModalRestrictions() {
+    const isGunGame = (selectedMode === "11");
+    const isLmsOrFfa = (selectedMode === "1" || selectedMode === "2");
+
+    const weaponLabel = document.getElementById("labelWeapon");
+    const weaponGrid = document.getElementById("weaponGrid");
+    const ffLabel = document.getElementById("labelFF");
+    const ffGrid = document.getElementById("ffGrid");
+    const fraglimitInput = document.getElementById("voteFraglimit");
+
+    if (!weaponLabel || !weaponGrid || !ffLabel || !ffGrid || !fraglimitInput) return;
+
+    // Reset default styling
+    weaponLabel.style.opacity = "1";
+    weaponGrid.style.pointerEvents = "auto";
+    weaponGrid.style.opacity = "1";
+    
+    ffLabel.style.opacity = "1";
+    ffGrid.style.pointerEvents = "auto";
+    ffGrid.style.opacity = "1";
+
+    fraglimitInput.disabled = false;
+    fraglimitInput.style.opacity = "1";
+    fraglimitInput.parentElement.style.opacity = "1";
+
+    // Gun Game restrictions:
+    // - Lock weapon type to "Todas as armas" (All weapons)
+    // - Do not allow friendly fire selection (leave it at default, "0")
+    // - Do not allow kill limit (fraglimit) selection
+    if (isGunGame) {
+        // Lock weapon to "Todas as armas"
+        selectedWeapon = "Todas as armas";
+        document.querySelectorAll(".weapon-btn").forEach(b => {
+            if (b.dataset.weapon === "Todas as armas") {
+                b.classList.add("active");
+            } else {
+                b.classList.remove("active");
+            }
+        });
+        weaponLabel.style.opacity = "0.4";
+        weaponGrid.style.pointerEvents = "none";
+        weaponGrid.style.opacity = "0.4";
+
+        // Lock friendly fire to "0"
+        selectedFriendlyFire = "0";
+        document.querySelectorAll(".ff-btn").forEach(b => {
+            if (b.dataset.ff === "0") {
+                b.classList.add("active");
+            } else {
+                b.classList.remove("active");
+            }
+        });
+        ffLabel.style.opacity = "0.4";
+        ffGrid.style.pointerEvents = "none";
+        ffGrid.style.opacity = "0.4";
+
+        // Disable fraglimit input
+        fraglimitInput.value = "";
+        fraglimitInput.disabled = true;
+        fraglimitInput.style.opacity = "0.4";
+        fraglimitInput.parentElement.style.opacity = "0.4";
+    }
+    // LMS/FFA restrictions:
+    // - Do not allow friendly fire selection (leave it at default, "0")
+    else if (isLmsOrFfa) {
+        // Lock friendly fire to "0"
+        selectedFriendlyFire = "0";
+        document.querySelectorAll(".ff-btn").forEach(b => {
+            if (b.dataset.ff === "0") {
+                b.classList.add("active");
+            } else {
+                b.classList.remove("active");
+            }
+        });
+        ffLabel.style.opacity = "0.4";
+        ffGrid.style.pointerEvents = "none";
+        ffGrid.style.opacity = "0.4";
+    }
 }
 
 function toggleRanking() {
@@ -472,10 +555,21 @@ function openVoteModal(map) {
     document.querySelector('[data-ff="0"]')
         .classList.add("active");
 
+    document.getElementById("voteTimelimit").value = "";
+    document.getElementById("voteFraglimit").value = "";
+
+    applyModalRestrictions();
+
     document.getElementById("voteModal").style.display = "flex";
 }
 
 async function confirmVote() {
+    const timeValRaw = document.getElementById("voteTimelimit").value.trim();
+    const fragValRaw = document.getElementById("voteFraglimit").value.trim();
+
+    const timelimit = (timeValRaw !== "") ? parseInt(timeValRaw, 10) : defaultTimelimit;
+    const fraglimit = (fragValRaw !== "") ? parseInt(fragValRaw, 10) : defaultFraglimit;
+
     const response = await fetch(`${API_URL}/vote`, {
         method: "POST",
         headers: {
@@ -487,7 +581,9 @@ async function confirmVote() {
             mode: selectedMode,
             weapon: selectedWeapon,
             customWeapons: selectedWeapon === "Personalizadas" ? selectedCustomWeapons : [],
-            friendlyFire: selectedFriendlyFire
+            friendlyFire: selectedFriendlyFire,
+            timelimit: isNaN(timelimit) ? defaultTimelimit : timelimit,
+            fraglimit: isNaN(fraglimit) ? defaultFraglimit : fraglimit
         })
     });
 
@@ -588,16 +684,27 @@ function getMapcycleContent() {
     const modeByMap = {};
     const weaponByMap = {};
     const ffByMap = {};
+    const timeByMap = {};
+    const fragByMap = {};
 
     votes.forEach(v => {
         mapCount[v.map] = (mapCount[v.map] || 0) + 1;
         if (!modeByMap[v.map]) modeByMap[v.map] = {};
         if (!weaponByMap[v.map]) weaponByMap[v.map] = {};
         if (!ffByMap[v.map]) ffByMap[v.map] = {};
+        if (!timeByMap[v.map]) timeByMap[v.map] = {};
+        if (!fragByMap[v.map]) fragByMap[v.map] = {};
+
         modeByMap[v.map][v.mode] = (modeByMap[v.map][v.mode] || 0) + 1;
         weaponByMap[v.map][v.weapon] = (weaponByMap[v.map][v.weapon] || 0) + 1;
+        
         const ff = v.friendlyFire ?? "0";
         ffByMap[v.map][ff] = (ffByMap[v.map][ff] || 0) + 1;
+
+        const tl = v.timelimit !== undefined ? v.timelimit : defaultTimelimit;
+        const fl = v.fraglimit !== undefined ? v.fraglimit : defaultFraglimit;
+        timeByMap[v.map][tl] = (timeByMap[v.map][tl] || 0) + 1;
+        fragByMap[v.map][fl] = (fragByMap[v.map][fl] || 0) + 1;
     });
 
     const sortedMaps = Object.entries(mapCount).sort((a, b) => b[1] - a[1]);
@@ -608,6 +715,12 @@ function getMapcycleContent() {
         const mostVotedMode = Object.entries(modeByMap[map]).sort((a, b) => b[1] - a[1])[0][0];
         const mostVotedWeapon = Object.entries(weaponByMap[map]).sort((a, b) => b[1] - a[1])[0][0];
         const mostVotedFF = Object.entries(ffByMap[map]).sort((a, b) => b[1] - a[1])[0][0];
+
+        const sortedTimes = Object.entries(timeByMap[map] || {}).sort((a, b) => b[1] - a[1]);
+        const mostVotedTime = sortedTimes.length > 0 ? sortedTimes[0][0] : defaultTimelimit;
+
+        const sortedFrags = Object.entries(fragByMap[map] || {}).sort((a, b) => b[1] - a[1]);
+        const mostVotedFrag = sortedFrags.length > 0 ? sortedFrags[0][0] : defaultFraglimit;
 
         let customWeaponsArray = [];
         if (mostVotedWeapon === "Personalizadas") {
@@ -621,7 +734,7 @@ function getMapcycleContent() {
             customWeaponsArray = topCustomKey ? topCustomKey.split("") : [];
         }
 
-        content += `${map}\n{\n    g_gametype ${mostVotedMode}\n    roundlimit 5\n    g_gear "${getGear(mostVotedWeapon, customWeaponsArray)}"\n    g_friendlyfire ${mostVotedFF}\n}\n\n`;
+        content += `${map}\n{\n    g_gametype ${mostVotedMode}\n    roundlimit 5\n    g_gear "${getGear(mostVotedWeapon, customWeaponsArray)}"\n    g_friendlyfire ${mostVotedFF}\n    timelimit ${mostVotedTime}\n    fraglimit ${mostVotedFrag}\n}\n\n`;
     });
 
     return content;
@@ -1392,6 +1505,24 @@ async function loadTop3Ranking() {
     }
 }
 
+async function fetchServerStatus() {
+    try {
+        const response = await fetch(`${API_URL}/server-status`);
+        const data = await response.json();
+        if (data.default_timelimit !== undefined) {
+            defaultTimelimit = data.default_timelimit;
+            document.getElementById("voteTimelimit").placeholder = defaultTimelimit;
+        }
+        if (data.default_fraglimit !== undefined) {
+            defaultFraglimit = data.default_fraglimit;
+            document.getElementById("voteFraglimit").placeholder = defaultFraglimit;
+        }
+    } catch (e) {
+        console.error("Erro ao obter status do servidor:", e);
+    }
+}
+
+fetchServerStatus();
 resetDailyVotes();
 renderMaps();
 setupWeaponButtons();
@@ -1582,3 +1713,29 @@ async function handleUpload() {
         alert("Erro ao enviar imagem.");
     }
 }
+
+// Close modals on clicking outside the content area or pressing Escape
+window.addEventListener("click", (e) => {
+    if (e.target.classList.contains("modal")) {
+        e.target.style.display = "none";
+        // Specific cleanup for crop modal if closed this way
+        if (e.target.id === "cropModal" && avatarCropper) {
+            avatarCropper.destroy();
+            avatarCropper = null;
+            document.getElementById("avatarInput").value = "";
+        }
+    }
+});
+
+window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+        document.querySelectorAll(".modal").forEach(modal => {
+            modal.style.display = "none";
+            if (modal.id === "cropModal" && avatarCropper) {
+                avatarCropper.destroy();
+                avatarCropper = null;
+                document.getElementById("avatarInput").value = "";
+            }
+        });
+    }
+});
