@@ -624,9 +624,30 @@ def parse_logs_worker():
             with stats_lock:
                 today_str = datetime.now().strftime("%Y-%m-%d")
                 if global_stats["daily_date"] != today_str:
-                    global_stats["daily_date"] = today_str
-                    global_stats["daily"] = {"kills": {}, "deaths": {}, "weapons": {}, "relationships": {}}
-                    save_stats()
+                    # Só rotaciona se o arquivo existir e o parser já tiver lido tudo até o fim
+                    if os.path.exists(GAMES_LOG):
+                        current_size = os.path.getsize(GAMES_LOG)
+                        if global_stats["offset"] >= current_size:
+                            try:
+                                with open(GAMES_LOG, "w") as f:
+                                    f.truncate(0)
+                                global_stats["offset"] = 0
+                                global_stats["daily_date"] = today_str
+                                global_stats["daily"] = {
+                                    "kills": {}, "deaths": {}, "weapons": {}, "relationships": {},
+                                    "hits": {}, "headshots": {}, "triple_kills": {}, "max_streak": {}
+                                }
+                                save_stats()
+                                print(f"[INFO] games.log truncado e rotacionado para o novo dia: {today_str}")
+                            except Exception as e:
+                                print("Erro ao truncar games.log:", e)
+                    else:
+                        global_stats["daily_date"] = today_str
+                        global_stats["daily"] = {
+                            "kills": {}, "deaths": {}, "weapons": {}, "relationships": {},
+                            "hits": {}, "headshots": {}, "triple_kills": {}, "max_streak": {}
+                        }
+                        save_stats()
             
             if os.path.exists(GAMES_LOG):
                 current_size = os.path.getsize(GAMES_LOG)
