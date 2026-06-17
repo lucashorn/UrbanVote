@@ -2159,8 +2159,8 @@ table.dataTable tbody td {
 }
 
 .body-heatmap-svg {
-    width: 90px;
-    height: 207px;
+    width: 130px;
+    height: 300px;
     filter: drop-shadow(0 0 8px rgba(0,0,0,0.9));
     display: block;
 }
