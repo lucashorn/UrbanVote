@@ -283,6 +283,8 @@ def load_stats():
         for key in ["hits", "headshots", "triple_kills", "max_streak"]:
             if key not in global_stats[p]:
                 global_stats[p][key] = {}
+        if "hit_locations" not in global_stats[p]:
+            global_stats[p]["hit_locations"] = {}
     if "history" not in global_stats:
         global_stats["history"] = []
     if "baselines" not in global_stats:
@@ -816,18 +818,43 @@ def parse_logs_worker():
                                 current_match_stats = {}
                                 continue
 
-                            # Detect hits
+                            # Detect hits (text format: "X hit Y in the Z")
                             m_hit = re.search(r"Hit:\s+\d+\s+\d+\s+\d+\s+\d+:\s+(.+?)\s+hit\s+(.+?)\s+in\s+the\s+(\w+)", line)
                             if m_hit:
-                                attacker, victim, location = m_hit.group(1), m_hit.group(2), m_hit.group(3)
-                                def do_hit_update():
+                                attacker = m_hit.group(1)
+                                location_raw = m_hit.group(3).lower()
+                                # Normalize location to canonical body zone
+                                if location_raw in ("head", "helmet"):
+                                    zone = "head"
+                                elif location_raw in ("torso", "vest", "chest"):
+                                    zone = "torso"
+                                elif location_raw in ("arm", "arms", "leftarm", "rightarm", "left_arm", "right_arm"):
+                                    zone = "arms"
+                                elif location_raw in ("groin", "butt", "gluteus"):
+                                    zone = "groin"
+                                elif location_raw in ("leg", "legs", "leftleg", "rightleg", "left_leg", "right_leg", "foot", "feet"):
+                                    zone = "legs"
+                                else:
+                                    zone = "torso"  # fallback
+                                def do_hit_update(a=attacker, z=zone):
                                     for period in ["all", "daily"]:
                                         stats = global_stats[period]
-                                        stats["hits"][attacker] = stats["hits"].get(attacker, 0) + 1
-                                        if location in ["Head", "Helmet"]:
-                                            stats["headshots"][attacker] = stats["headshots"].get(attacker, 0) + 1
+                                        stats["hits"][a] = stats["hits"].get(a, 0) + 1
+                                        if z == "head":
+                                            stats["headshots"][a] = stats["headshots"].get(a, 0) + 1
+                                        # Track hit location per player
+                                        if a not in stats["hit_locations"]:
+                                            stats["hit_locations"][a] = {"head": 0, "torso": 0, "arms": 0, "groin": 0, "legs": 0}
+                                        stats["hit_locations"][a][z] = stats["hit_locations"][a].get(z, 0) + 1
                                 update_and_check_achievement(attacker, do_hit_update)
                                 continue
+
+                            # Detect hits (numeric format: "Hit: aid vid loc weapon")
+                            m_hit_num = re.search(r"^\s*Hit:\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$", line)
+                            if m_hit_num:
+                                # We only have IDs here - need ClientUserinfoChanged mapping
+                                # Skip numeric-only hits without name resolution for now
+                                pass
 
                             m = KILL_RE.search(line)
                             if not m:
@@ -1115,6 +1142,17 @@ class VoteServer(SimpleHTTPRequestHandler):
                 hs_val = stats.get("headshots", {}).get(player_name, 0)
                 hs_percent = round((hs_val / hits_val) * 100, 1) if hits_val > 0 else 0.0
 
+                # Compute hit location percentages
+                raw_locs = stats.get("hit_locations", {}).get(player_name, {})
+                total_located_hits = sum(raw_locs.values()) if raw_locs else 0
+                hit_locations_pct = {}
+                for zone in ["head", "torso", "arms", "groin", "legs"]:
+                    count = raw_locs.get(zone, 0)
+                    hit_locations_pct[zone] = {
+                        "count": count,
+                        "pct": round((count / total_located_hits) * 100, 1) if total_located_hits > 0 else 0.0
+                    }
+
                 avatar_url, avatar_orig = get_player_avatars(player_name)
                 data = {
                     "player": player_name,
@@ -1132,7 +1170,9 @@ class VoteServer(SimpleHTTPRequestHandler):
                     "avatar": avatar_url,
                     "avatar_original": avatar_orig or avatar_url,
                     "hsPercent": hs_percent,
-                    "achievements": achievements_data
+                    "achievements": achievements_data,
+                    "hitLocations": hit_locations_pct,
+                    "totalHits": total_located_hits
                 }
             self.send_response(200)
             self.end_cors()

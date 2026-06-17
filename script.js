@@ -1388,10 +1388,119 @@ async function openProfile(playerName) {
                 achContainer.appendChild(item);
             });
         }
+        // Render body heatmap
+        renderBodyHeatmap(data.hitLocations || null, data.totalHits || 0);
+
     } catch (e) {
         console.error(e);
         document.getElementById("profileName").innerText = "Erro ao carregar";
     }
+}
+
+// ---- Body Heatmap ----
+const ZONE_META = {
+    head:  { label: "Cabeça",  color: "#ff2222" },
+    torso: { label: "Tronco",  color: "#ff7700" },
+    arms:  { label: "Braços",  color: "#ffcc00" },
+    groin: { label: "Virilha", color: "#44aaff" },
+    legs:  { label: "Pernas",  color: "#22dd88" }
+};
+
+function heatColor(pct) {
+    // 0% -> cold blue, 50%+ -> orange/red
+    const t = Math.min(pct / 50, 1); // normalize 0..1
+    // interpolate: low #1a3a5c -> mid #ff7700 -> high #ff1111
+    if (t < 0.5) {
+        const s = t * 2;
+        return lerpColor("#1a3a5c", "#ff7700", s);
+    } else {
+        const s = (t - 0.5) * 2;
+        return lerpColor("#ff7700", "#ff1111", s);
+    }
+}
+
+function lerpColor(a, b, t) {
+    const ah = parseInt(a.slice(1), 16);
+    const bh = parseInt(b.slice(1), 16);
+    const ar = (ah >> 16) & 0xff, ag = (ah >> 8) & 0xff, ab = ah & 0xff;
+    const br = (bh >> 16) & 0xff, bg = (bh >> 8) & 0xff, bb = bh & 0xff;
+    const rr = Math.round(ar + (br - ar) * t);
+    const rg = Math.round(ag + (bg - ag) * t);
+    const rb = Math.round(ab + (bb - ab) * t);
+    return `#${rr.toString(16).padStart(2,'0')}${rg.toString(16).padStart(2,'0')}${rb.toString(16).padStart(2,'0')}`;
+}
+
+function renderBodyHeatmap(hitLocations, totalHits) {
+    const emptyEl = document.getElementById("bodyHeatmapEmpty");
+    const legendEl = document.getElementById("bodyHeatmapLegend");
+    const tooltip = document.getElementById("bodyHeatmapTooltip");
+
+    legendEl.innerHTML = "";
+
+    if (!hitLocations || totalHits === 0) {
+        emptyEl.style.display = "block";
+        // Reset all zones to default cold color
+        Object.keys(ZONE_META).forEach(zone => {
+            const inner = document.getElementById(`zoneGradStop-${zone}-inner`);
+            const outer = document.getElementById(`zoneGradStop-${zone}-outer`);
+            if (inner) inner.setAttribute("stop-color", "#3a3a3a");
+            if (outer) outer.setAttribute("stop-color", "#222");
+        });
+        return;
+    }
+    emptyEl.style.display = "none";
+
+    Object.entries(ZONE_META).forEach(([zone, meta]) => {
+        const info = hitLocations[zone] || { count: 0, pct: 0 };
+        const pct = info.pct || 0;
+        const count = info.count || 0;
+        const color = heatColor(pct);
+        const dimColor = lerpColor("#1a1a1a", color, 0.4);
+
+        // Color SVG gradient stops
+        const inner = document.getElementById(`zoneGradStop-${zone}-inner`);
+        const outer = document.getElementById(`zoneGradStop-${zone}-outer`);
+        if (inner) inner.setAttribute("stop-color", color);
+        if (outer) outer.setAttribute("stop-color", dimColor);
+
+        // Tooltip on hover
+        const zoneEl = document.getElementById(`zone-${zone}`);
+        if (zoneEl) {
+            zoneEl.onmouseenter = (e) => {
+                tooltip.innerHTML = `<strong>${meta.label}</strong>${count} acertos &bull; ${pct}%`;
+                tooltip.style.display = "block";
+            };
+            zoneEl.onmousemove = (e) => {
+                tooltip.style.left = (e.clientX + 14) + "px";
+                tooltip.style.top  = (e.clientY - 10) + "px";
+            };
+            zoneEl.onmouseleave = () => {
+                tooltip.style.display = "none";
+            };
+        }
+
+        // Legend row
+        const row = document.createElement("div");
+        row.className = "heatmap-legend-row";
+        row.innerHTML = `
+            <span class="heatmap-legend-dot" style="background:${color};"></span>
+            <span class="heatmap-legend-label">${meta.label}</span>
+            <div class="heatmap-legend-bar-wrap">
+                <div class="heatmap-legend-bar" style="width:0%; background:${color};" data-target="${pct}"></div>
+            </div>
+            <span class="heatmap-legend-pct">${pct}%</span>
+        `;
+        legendEl.appendChild(row);
+    });
+
+    // Animate bars with slight delay
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            legendEl.querySelectorAll(".heatmap-legend-bar").forEach(bar => {
+                bar.style.width = bar.dataset.target + "%";
+            });
+        }, 80);
+    });
 }
 
 document.getElementById("profileClose").onclick = () => {

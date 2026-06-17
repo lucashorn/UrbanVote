@@ -374,7 +374,101 @@
                             <small id="profileNemesisKills">0 mortes</small>
                         </div>
                     </div>
-                </div>
+
+                    <!-- Body Heatmap -->
+                    <div class="body-heatmap-section">
+                        <h4 class="body-heatmap-title"><i class="fas fa-crosshairs"></i> Mapa de Acertos</h4>
+                        <div class="body-heatmap-container">
+                            <div class="body-heatmap-svg-wrap">
+                                <svg id="bodyHeatmapSvg" viewBox="0 0 120 280" xmlns="http://www.w3.org/2000/svg" class="body-heatmap-svg">
+                                    <!-- Head -->
+                                    <g id="zone-head" class="body-zone" data-zone="head">
+                                        <ellipse cx="60" cy="22" rx="16" ry="18" fill="url(#zoneGrad-head)" stroke="#333" stroke-width="1.2"/>
+                                        <!-- neck -->
+                                        <rect x="54" y="38" width="12" height="8" rx="3" fill="url(#zoneGrad-head)" stroke="#333" stroke-width="1"/>
+                                    </g>
+                                    <!-- Torso -->
+                                    <g id="zone-torso" class="body-zone" data-zone="torso">
+                                        <path d="M38 46 Q35 48 33 52 L30 100 Q30 108 38 108 L82 108 Q90 108 90 100 L87 52 Q85 48 82 46 Z"
+                                              fill="url(#zoneGrad-torso)" stroke="#333" stroke-width="1.2"/>
+                                    </g>
+                                    <!-- Left Arm -->
+                                    <g id="zone-arms" class="body-zone" data-zone="arms">
+                                        <path d="M30 52 Q22 54 20 60 L15 95 Q14 102 18 104 L26 104 Q30 103 31 98 L33 62 Z"
+                                              fill="url(#zoneGrad-arms)" stroke="#333" stroke-width="1"/>
+                                        <!-- Right Arm -->
+                                        <path d="M90 52 Q98 54 100 60 L105 95 Q106 102 102 104 L94 104 Q90 103 89 98 L87 62 Z"
+                                              fill="url(#zoneGrad-arms)" stroke="#333" stroke-width="1"/>
+                                        <!-- Left forearm / hand -->
+                                        <path d="M15 95 Q12 103 13 110 L18 116 Q21 117 25 115 L28 107 L18 104 Z"
+                                              fill="url(#zoneGrad-arms)" stroke="#333" stroke-width="1"/>
+                                        <!-- Right forearm / hand -->
+                                        <path d="M105 95 Q108 103 107 110 L102 116 Q99 117 95 115 L92 107 L102 104 Z"
+                                              fill="url(#zoneGrad-arms)" stroke="#333" stroke-width="1"/>
+                                    </g>
+                                    <!-- Groin -->
+                                    <g id="zone-groin" class="body-zone" data-zone="groin">
+                                        <path d="M38 108 L82 108 L78 128 Q70 133 60 133 Q50 133 42 128 Z"
+                                              fill="url(#zoneGrad-groin)" stroke="#333" stroke-width="1.2"/>
+                                    </g>
+                                    <!-- Legs -->
+                                    <g id="zone-legs" class="body-zone" data-zone="legs">
+                                        <!-- Left thigh -->
+                                        <path d="M42 128 Q50 133 60 133 L58 185 Q56 192 50 192 L42 190 Q37 185 38 178 Z"
+                                              fill="url(#zoneGrad-legs)" stroke="#333" stroke-width="1"/>
+                                        <!-- Right thigh -->
+                                        <path d="M78 128 Q70 133 60 133 L62 185 Q64 192 70 192 L78 190 Q83 185 82 178 Z"
+                                              fill="url(#zoneGrad-legs)" stroke="#333" stroke-width="1"/>
+                                        <!-- Left shin -->
+                                        <path d="M42 190 L50 192 L49 240 Q49 248 44 250 L39 248 Q36 245 37 240 Z"
+                                              fill="url(#zoneGrad-legs)" stroke="#333" stroke-width="1"/>
+                                        <!-- Right shin -->
+                                        <path d="M78 190 L70 192 L71 240 Q71 248 76 250 L81 248 Q84 245 83 240 Z"
+                                              fill="url(#zoneGrad-legs)" stroke="#333" stroke-width="1"/>
+                                        <!-- Left foot -->
+                                        <path d="M37 240 L44 250 Q44 255 41 258 L32 260 Q28 258 29 254 Q30 248 37 246 Z"
+                                              fill="url(#zoneGrad-legs)" stroke="#333" stroke-width="1"/>
+                                        <!-- Right foot -->
+                                        <path d="M83 240 L76 250 Q76 255 79 258 L88 260 Q92 258 91 254 Q90 248 83 246 Z"
+                                              fill="url(#zoneGrad-legs)" stroke="#333" stroke-width="1"/>
+                                    </g>
+
+                                    <!-- Gradient defs (filled dynamically by JS) -->
+                                    <defs>
+                                        <radialGradient id="zoneGrad-head" cx="50%" cy="50%" r="60%">
+                                            <stop offset="0%" stop-color="#555" id="zoneGradStop-head-inner"/>
+                                            <stop offset="100%" stop-color="#333" id="zoneGradStop-head-outer"/>
+                                        </radialGradient>
+                                        <radialGradient id="zoneGrad-torso" cx="50%" cy="40%" r="70%">
+                                            <stop offset="0%" stop-color="#555" id="zoneGradStop-torso-inner"/>
+                                            <stop offset="100%" stop-color="#333" id="zoneGradStop-torso-outer"/>
+                                        </radialGradient>
+                                        <radialGradient id="zoneGrad-arms" cx="50%" cy="50%" r="60%">
+                                            <stop offset="0%" stop-color="#555" id="zoneGradStop-arms-inner"/>
+                                            <stop offset="100%" stop-color="#333" id="zoneGradStop-arms-outer"/>
+                                        </radialGradient>
+                                        <radialGradient id="zoneGrad-groin" cx="50%" cy="50%" r="60%">
+                                            <stop offset="0%" stop-color="#555" id="zoneGradStop-groin-inner"/>
+                                            <stop offset="100%" stop-color="#333" id="zoneGradStop-groin-outer"/>
+                                        </radialGradient>
+                                        <radialGradient id="zoneGrad-legs" cx="50%" cy="30%" r="70%">
+                                            <stop offset="0%" stop-color="#555" id="zoneGradStop-legs-inner"/>
+                                            <stop offset="100%" stop-color="#333" id="zoneGradStop-legs-outer"/>
+                                        </radialGradient>
+                                    </defs>
+                                </svg>
+                                <!-- Tooltip -->
+                                <div id="bodyHeatmapTooltip" class="body-heatmap-tooltip" style="display:none;"></div>
+                            </div>
+                            <div class="body-heatmap-legend" id="bodyHeatmapLegend">
+                                <!-- Injected by JS -->
+                            </div>
+                        </div>
+                        <p class="body-heatmap-empty" id="bodyHeatmapEmpty" style="display:none;">Sem dados de acertos ainda</p>
+                    </div>
+
+
+                </div><!-- end profile-left-col -->
 
                 <!-- Coluna Direita: Conquistas -->
                 <div class="profile-right-col">
