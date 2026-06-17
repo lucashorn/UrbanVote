@@ -1019,42 +1019,80 @@ table.dataTable tbody td {
 
 /* Profile Modal */
 .profile-modal {
-    max-width: 780px;
-    width: 95%;
+    max-width: 1050px;
+    width: 97%;
     background: linear-gradient(145deg, #1e1e1e, #141414);
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.profile-header h2 {
+    margin: 0;
+    font-size: 1.4em;
+    color: #eee;
 }
 
 .profile-body-layout {
     display: flex;
-    gap: 24px;
+    gap: 0;
     align-items: stretch;
 }
 
-.profile-left-col {
-    flex: 1;
-    min-width: 300px;
-}
-
-.profile-right-col {
-    flex: 1.1;
-    min-width: 320px;
-    border-left: 1px solid #30363d;
-    padding-left: 24px;
+/* Generic column */
+.profile-col {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    padding: 0 20px;
 }
 
-.profile-header {
-    text-align: center;
-    margin-bottom: 20px;
+.profile-col + .profile-col {
+    border-left: 1px solid #2a2a2a;
 }
 
-.profile-header i {
-    font-size: 4em;
+.profile-col-stats {
+    flex: 1.1;
+    min-width: 240px;
+    padding-left: 0;
+    justify-content: flex-start;
+}
+
+.profile-col-heatmap {
+    flex: 0.75;
+    min-width: 180px;
+    align-items: center;
+}
+
+.profile-col-achievements {
+    flex: 1.1;
+    min-width: 240px;
+    padding-right: 0;
+    justify-content: flex-start;
+}
+
+.profile-col-title {
+    font-size: 0.78em;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #666;
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+}
+
+.profile-col-title i {
     color: #ff3333;
-    margin-bottom: 10px;
 }
+
 
 .profile-stats {
     display: grid;
@@ -1133,16 +1171,25 @@ table.dataTable tbody td {
     object-fit: contain;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
+    .profile-modal {
+        max-width: 98%;
+    }
     .profile-body-layout {
         flex-direction: column;
+        min-height: unset;
         gap: 20px;
     }
-    .profile-right-col {
+    .profile-col + .profile-col {
         border-left: none;
-        padding-left: 0;
-        border-top: 1px solid #30363d;
+        border-top: 1px solid #2a2a2a;
         padding-top: 20px;
+    }
+    .profile-col {
+        padding: 0;
+    }
+    .profile-col-heatmap {
+        align-items: flex-start;
     }
     .modal-content {
         margin: 15px auto;
@@ -2101,46 +2148,19 @@ table.dataTable tbody td {
     border-color: #ff007f;
     box-shadow: 0 0 5px rgba(255, 0, 127, 0.5);
 }
-/* ============================================================
-   BODY HEATMAP
-   ============================================================ */
-
-.body-heatmap-section {
-    margin-top: 20px;
-    border-top: 1px solid #2a2a2a;
-    padding-top: 16px;
-}
-
-.body-heatmap-title {
-    font-size: 0.85em;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #888;
-    margin: 0 0 12px 0;
+.body-heatmap-inner {
     display: flex;
+    justify-content: center;
     align-items: center;
-    gap: 6px;
-}
-
-.body-heatmap-title i {
-    color: #ff3333;
-}
-
-.body-heatmap-container {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-}
-
-.body-heatmap-svg-wrap {
-    position: relative;
-    flex-shrink: 0;
+    flex: 1;
+    margin-bottom: 12px;
 }
 
 .body-heatmap-svg {
-    width: 100px;
-    height: 230px;
-    filter: drop-shadow(0 0 6px rgba(0,0,0,0.8));
+    width: 90px;
+    height: 207px;
+    filter: drop-shadow(0 0 8px rgba(0,0,0,0.9));
+    display: block;
 }
 
 .body-zone {
@@ -2174,12 +2194,13 @@ table.dataTable tbody td {
     margin-bottom: 2px;
 }
 
-/* Legend */
+/* Legend — stacks below the SVG inside col 2 */
 .body-heatmap-legend {
-    flex: 1;
+    width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 6px;
+    padding: 0 4px;
 }
 
 .heatmap-legend-row {

@@ -1399,35 +1399,28 @@ async function openProfile(playerName) {
 
 // ---- Body Heatmap ----
 const ZONE_META = {
-    head:  { label: "Cabeça",  color: "#ff2222" },
-    torso: { label: "Tronco",  color: "#ff7700" },
-    arms:  { label: "Braços",  color: "#ffcc00" },
-    groin: { label: "Virilha", color: "#44aaff" },
-    legs:  { label: "Pernas",  color: "#22dd88" }
+    head:  { label: "Cabeça", color: "#ff2222" },
+    torso: { label: "Tronco", color: "#ff7700" },
+    arms:  { label: "Braços", color: "#ffcc00" },
+    legs:  { label: "Pernas", color: "#22dd88" }
 };
 
-function heatColor(pct) {
-    // 0% -> cold blue, 50%+ -> orange/red
-    const t = Math.min(pct / 50, 1); // normalize 0..1
-    // interpolate: low #1a3a5c -> mid #ff7700 -> high #ff1111
-    if (t < 0.5) {
-        const s = t * 2;
-        return lerpColor("#1a3a5c", "#ff7700", s);
-    } else {
-        const s = (t - 0.5) * 2;
-        return lerpColor("#ff7700", "#ff1111", s);
-    }
+function heatColor(pct, maxPct) {
+    // Intensity: relative to the max zone — most-hit = brightest red
+    const t = maxPct > 0 ? pct / maxPct : 0;
+    // dark #1a1a1a (0%) → vivid red #ff2222 (100%)
+    const r = Math.round(26 + (255 - 26) * t);
+    const g = Math.round(26 + (34 - 26) * t);
+    const b = Math.round(26 + (34 - 26) * t);
+    return `rgb(${r},${g},${b})`;
 }
 
-function lerpColor(a, b, t) {
-    const ah = parseInt(a.slice(1), 16);
-    const bh = parseInt(b.slice(1), 16);
-    const ar = (ah >> 16) & 0xff, ag = (ah >> 8) & 0xff, ab = ah & 0xff;
-    const br = (bh >> 16) & 0xff, bg = (bh >> 8) & 0xff, bb = bh & 0xff;
-    const rr = Math.round(ar + (br - ar) * t);
-    const rg = Math.round(ag + (bg - ag) * t);
-    const rb = Math.round(ab + (bb - ab) * t);
-    return `#${rr.toString(16).padStart(2,'0')}${rg.toString(16).padStart(2,'0')}${rb.toString(16).padStart(2,'0')}`;
+function dimColor(pct, maxPct) {
+    const t = maxPct > 0 ? pct / maxPct : 0;
+    const r = Math.round(15 + (120 - 15) * t);
+    const g = Math.round(15 + (10 - 15) * t);
+    const b = Math.round(15 + (10 - 15) * t);
+    return `rgb(${r},${g},${b})`;
 }
 
 function renderBodyHeatmap(hitLocations, totalHits) {
@@ -1439,29 +1432,34 @@ function renderBodyHeatmap(hitLocations, totalHits) {
 
     if (!hitLocations || totalHits === 0) {
         emptyEl.style.display = "block";
-        // Reset all zones to default cold color
-        Object.keys(ZONE_META).forEach(zone => {
+        // Reset all zones to dark default
+        ["head", "torso", "arms", "legs"].forEach(zone => {
             const inner = document.getElementById(`zoneGradStop-${zone}-inner`);
             const outer = document.getElementById(`zoneGradStop-${zone}-outer`);
-            if (inner) inner.setAttribute("stop-color", "#3a3a3a");
-            if (outer) outer.setAttribute("stop-color", "#222");
+            if (inner) inner.setAttribute("stop-color", "#2a2a2a");
+            if (outer) outer.setAttribute("stop-color", "#111");
         });
         return;
     }
     emptyEl.style.display = "none";
 
+    // Find max pct for relative intensity scaling
+    const maxPct = Math.max(...Object.keys(ZONE_META).map(z => (hitLocations[z] || {pct:0}).pct || 0));
+
     Object.entries(ZONE_META).forEach(([zone, meta]) => {
         const info = hitLocations[zone] || { count: 0, pct: 0 };
         const pct = info.pct || 0;
         const count = info.count || 0;
-        const color = heatColor(pct);
-        const dimColor = lerpColor("#1a1a1a", color, 0.4);
+        const color = heatColor(pct, maxPct);
+        const dim   = dimColor(pct, maxPct);
+        // Bar width relative to max zone (so top zone = 100% width)
+        const barWidth = maxPct > 0 ? Math.round((pct / maxPct) * 100) : 0;
 
         // Color SVG gradient stops
         const inner = document.getElementById(`zoneGradStop-${zone}-inner`);
         const outer = document.getElementById(`zoneGradStop-${zone}-outer`);
         if (inner) inner.setAttribute("stop-color", color);
-        if (outer) outer.setAttribute("stop-color", dimColor);
+        if (outer) outer.setAttribute("stop-color", dim);
 
         // Tooltip on hover
         const zoneEl = document.getElementById(`zone-${zone}`);
@@ -1483,10 +1481,10 @@ function renderBodyHeatmap(hitLocations, totalHits) {
         const row = document.createElement("div");
         row.className = "heatmap-legend-row";
         row.innerHTML = `
-            <span class="heatmap-legend-dot" style="background:${color};"></span>
+            <span class="heatmap-legend-dot" style="background:${color};box-shadow:0 0 4px ${color};"></span>
             <span class="heatmap-legend-label">${meta.label}</span>
             <div class="heatmap-legend-bar-wrap">
-                <div class="heatmap-legend-bar" style="width:0%; background:${color};" data-target="${pct}"></div>
+                <div class="heatmap-legend-bar" style="width:0%;background:${color};" data-target="${barWidth}"></div>
             </div>
             <span class="heatmap-legend-pct">${pct}%</span>
         `;
