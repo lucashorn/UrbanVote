@@ -637,7 +637,8 @@ def parse_logs_worker():
                                 global_stats["daily_date"] = today_str
                                 global_stats["daily"] = {
                                     "kills": {}, "deaths": {}, "weapons": {}, "relationships": {},
-                                    "hits": {}, "headshots": {}, "triple_kills": {}, "max_streak": {}
+                                    "hits": {}, "headshots": {}, "triple_kills": {}, "max_streak": {},
+                                    "hit_locations": {}
                                 }
                                 save_stats()
                                 print(f"[INFO] games.log truncado e rotacionado para o novo dia: {today_str}")
@@ -647,7 +648,8 @@ def parse_logs_worker():
                         global_stats["daily_date"] = today_str
                         global_stats["daily"] = {
                             "kills": {}, "deaths": {}, "weapons": {}, "relationships": {},
-                            "hits": {}, "headshots": {}, "triple_kills": {}, "max_streak": {}
+                            "hits": {}, "headshots": {}, "triple_kills": {}, "max_streak": {},
+                            "hit_locations": {}
                         }
                         save_stats()
             
