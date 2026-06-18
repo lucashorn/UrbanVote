@@ -413,7 +413,7 @@ function applyModalRestrictions() {
     weaponLabel.style.opacity = "1";
     weaponGrid.style.pointerEvents = "auto";
     weaponGrid.style.opacity = "1";
-    
+
     ffLabel.style.opacity = "1";
     ffGrid.style.pointerEvents = "auto";
     ffGrid.style.opacity = "1";
@@ -697,7 +697,7 @@ function getMapcycleContent() {
 
         modeByMap[v.map][v.mode] = (modeByMap[v.map][v.mode] || 0) + 1;
         weaponByMap[v.map][v.weapon] = (weaponByMap[v.map][v.weapon] || 0) + 1;
-        
+
         const ff = v.friendlyFire ?? "0";
         ffByMap[v.map][ff] = (ffByMap[v.map][ff] || 0) + 1;
 
@@ -991,7 +991,7 @@ async function fetchKills(period = activeKillTab) {
 document.getElementById("killRankingBtn").onclick = () => {
     const rankingPanel = document.getElementById("killRankingPanel");
     const isRankingOpen = rankingPanel.classList.contains("open");
-    
+
     // Close history panel
     document.getElementById("historyPanel").classList.remove("open");
     const allMatchesBtn = document.getElementById("openAllMatchesBtn");
@@ -1033,28 +1033,28 @@ document.getElementById("historyBtn").onclick = async () => {
     } else {
         historyPanel.classList.add("open");
         const el = document.getElementById("historyPanelBody");
-    try {
-        const res = await fetch(`${API_URL}/history`);
-        const data = await res.json();
-        matchHistory = data;
-        const allMatchesBtn = document.getElementById("openAllMatchesBtn");
-        if (allMatchesBtn) {
-            if (matchHistory.length > 15) {
-                allMatchesBtn.innerText = `Ver Tudo (${matchHistory.length})`;
-                allMatchesBtn.style.display = "inline-block";
-            } else {
-                allMatchesBtn.style.display = "none";
+        try {
+            const res = await fetch(`${API_URL}/history`);
+            const data = await res.json();
+            matchHistory = data;
+            const allMatchesBtn = document.getElementById("openAllMatchesBtn");
+            if (allMatchesBtn) {
+                if (matchHistory.length > 15) {
+                    allMatchesBtn.innerText = `Ver Tudo (${matchHistory.length})`;
+                    allMatchesBtn.style.display = "inline-block";
+                } else {
+                    allMatchesBtn.style.display = "none";
+                }
             }
-        }
-        if (!matchHistory.length) {
-            el.innerHTML = "<p style='color:#888;text-align:center;'>Nenhum histórico ainda.</p>";
-            return;
-        }
-        
-        const displayedHistory = matchHistory.slice(-15);
-        let itemsHtml = displayedHistory.slice().reverse().map((h, revIndex) => {
-            const originalIndex = matchHistory.length - 1 - revIndex;
-            return `
+            if (!matchHistory.length) {
+                el.innerHTML = "<p style='color:#888;text-align:center;'>Nenhum histórico ainda.</p>";
+                return;
+            }
+
+            const displayedHistory = matchHistory.slice(-15);
+            let itemsHtml = displayedHistory.slice().reverse().map((h, revIndex) => {
+                const originalIndex = matchHistory.length - 1 - revIndex;
+                return `
             <div class="history-item" onclick="openMatchScoreboard(${originalIndex})" style="cursor: pointer;">
                 <img class="history-item-img" src="${getMapImage(h.map)}" onerror="this.src='img/placeholder.jpg'">
                 <div class="history-item-content">
@@ -1069,13 +1069,13 @@ document.getElementById("historyBtn").onclick = async () => {
                 </div>
             </div>
             `;
-        }).join("");
+            }).join("");
 
-        el.innerHTML = itemsHtml;
-    } catch (e) {
-        el.innerHTML = "<p style='color:#ff3333;'>Erro ao carregar histórico.</p>";
+            el.innerHTML = itemsHtml;
+        } catch (e) {
+            el.innerHTML = "<p style='color:#ff3333;'>Erro ao carregar histórico.</p>";
+        }
     }
-  }
 };
 
 document.getElementById("historyPanelClose").onclick = () => {
@@ -1276,6 +1276,7 @@ const ACHIEVEMENTS_METADATA = {
     }
 };
 
+
 // --- Profile Modal ---
 async function openProfile(playerName) {
     const modal = document.getElementById("profileModal");
@@ -1346,10 +1347,10 @@ async function openProfile(playerName) {
             Object.keys(ACHIEVEMENTS_METADATA).forEach(id => {
                 const meta = ACHIEVEMENTS_METADATA[id];
                 const playerAch = data.achievements[id] || { unlocked: false, level: 0, roman: "", current: 0, target: 100, percent: 0.0 };
-                
+
                 const item = document.createElement("div");
                 item.className = "achievement-item";
-                
+
                 if (!playerAch.unlocked) {
                     item.classList.add("locked");
                 } else {
@@ -1363,7 +1364,7 @@ async function openProfile(playerName) {
                     } else {
                         item.classList.add("common");
                     }
-                    
+
                     // Render level badge
                     if (playerAch.roman) {
                         const badge = document.createElement("span");
@@ -1372,22 +1373,391 @@ async function openProfile(playerName) {
                         item.appendChild(badge);
                     }
                 }
-                
+
                 const lvlText = playerAch.unlocked ? `Nível ${playerAch.roman} (${playerAch.level})` : "Bloqueado";
                 const rarityText = playerAch.percent < 5 ? "Lendária" : playerAch.percent < 20 ? "Épica" : playerAch.percent < 50 ? "Rara" : "Comum";
                 const progressText = `Progresso: ${playerAch.current} / ${playerAch.target}`;
                 const rarityPctText = `Raridade: ${playerAch.percent}% dos jogadores (${rarityText})`;
-                
+
                 const tooltipText = `${meta.name} - ${lvlText}\n${meta.description}\n\n${progressText}\n${rarityPctText}`;
                 item.setAttribute("data-tooltip", tooltipText);
-                
+
                 const icon = document.createElement("i");
                 icon.className = meta.icon;
                 item.appendChild(icon);
-                
+
                 achContainer.appendChild(item);
             });
         }
+        // Fetch and process anatomical body heatmap SVG (random between musculo.svg and tpose.svg)
+        try {
+            const anatomicalSvgs = {
+                "musculo.svg": {
+                    clipZones: {
+                        "clip0_64_73": "legs",
+                        "clip1_64_73": "torso",
+                        "clip2_64_73": "torso",
+                        "clip3_64_73": "torso",
+                        "clip4_64_73": "arms",
+                        "clip5_64_73": "arms",
+                        "clip6_64_73": "arms",
+                        "clip7_64_73": "head"
+                    }
+                },
+                "tpose.svg": {
+                    clipZones: {
+                        "clip0_66_99": "legs",
+                        "clip1_66_99": "torso",
+                        "clip3_66_99": "arms",
+                        "clip2_66_99": "arms",
+                        "clip4_66_99": "head"
+                    }
+                },
+                "dance.svg": {
+                    clipZones: {
+                        "clip9_68_32": "head",
+                        "clip4_68_32": "torso",
+                        "clip3_68_32": "torso",
+                        "clip2_68_32": "legs",
+                        "clip5_68_32": "arms",
+                        "clip7_68_32": "arms",
+                        "clip6_68_32": "arms",
+                        "clip8_68_32": "arms",
+                        "clip1_68_32": "legs",
+                        "clip0_68_32": "legs"
+                    }
+                },
+                "espacate.svg": {
+                    clipZones: {
+                        "clip0_73_25": "legs",
+                        "clip1_73_25": "torso",
+                        "clip3_73_25": "arms",
+                        "clip2_73_25": "head",
+                        "clip4_73_25": "arms"
+                    }
+                },
+                "ashtasharan.svg": {
+                    clipZones: {
+                        "clip0_73_49": "legs",
+                        "clip1_73_49": "torso",
+                        "clip2_73_49": "arms",
+                        "clip3_73_49": "arms",
+                        "clip4_73_49": "head"
+                    }
+                },
+                "hamster.svg": {
+                    clipZones: {
+                        "clip0_73_131": "legs",
+                        "clip1_73_131": "torso",
+                        "clip2_73_131": "torso",
+                        "clip3_73_131": "torso",
+                        "clip4_73_131": "torso",
+                        "clip5_73_131": "torso",
+                        "clip6_73_131": "head",
+                        "clip7_73_131": "arms",
+                        "clip8_73_131": "arms",
+                        "clip9_73_131": "arms",
+                        "clip10_73_131": "arms",
+                        "clip11_73_131": "arms",
+                        "clip12_73_131": "arms",
+                        "clip13_73_131": "arms"
+                    }
+                }
+            };
+
+            const svgFiles = Object.keys(anatomicalSvgs);
+            const randomFile = svgFiles[Math.floor(Math.random() * svgFiles.length)];
+            const config = anatomicalSvgs[randomFile];
+
+            const svgRes = await fetch(`svg/${randomFile}`);
+            const svgText = await svgRes.text();
+
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(svgText, "image/svg+xml");
+            const svgElement = svgDoc.documentElement;
+
+            // Expand torso clipPath widths in musculo.svg to overlap by 3px and avoid hairline gaps
+            if (randomFile === "musculo.svg") {
+                const clip1 = svgElement.querySelector("#clip1_64_73 rect");
+                const clip2 = svgElement.querySelector("#clip2_64_73 rect");
+                if (clip1) {
+                    const w = parseFloat(clip1.getAttribute("width") || "196");
+                    clip1.setAttribute("width", (w + 3).toString());
+                }
+                if (clip2) {
+                    const w = parseFloat(clip2.getAttribute("width") || "188");
+                    clip2.setAttribute("width", (w + 3).toString());
+                }
+            }
+
+            // Expand clipPath borders in dance.svg to overlap adjacent clips and avoid hairline seam gaps
+            if (randomFile === "dance.svg") {
+                // TORSO seam: clip4 bottom (y=692) e clip3 bottom (y=692) encontram clip2 top (y=692)
+                // Estende o torso para baixo em 1.2px para sobrepor as pernas (legs)
+                const clip4d = svgElement.querySelector("#clip4_68_32 rect");
+                if (clip4d) {
+                    const h = parseFloat(clip4d.getAttribute("height") || "403");
+                    clip4d.setAttribute("height", (h + 1.2).toString());
+                }
+                const clip3d = svgElement.querySelector("#clip3_68_32 rect");
+                if (clip3d) {
+                    const h = parseFloat(clip3d.getAttribute("height") || "125");
+                    clip3d.setAttribute("height", (h + 1.2).toString());
+                }
+                // LEGS seam: clip2 (y=692-740) encontra clip1 (y=740-804)
+                // Estende clip2 para baixo e clip1 para cima em 1.2px
+                const clip2d = svgElement.querySelector("#clip2_68_32 rect");
+                if (clip2d) {
+                    const h = parseFloat(clip2d.getAttribute("height") || "48");
+                    clip2d.setAttribute("height", (h + 1.2).toString());
+                }
+                const clip1d = svgElement.querySelector("#clip1_68_32 rect");
+                if (clip1d) {
+                    const transform = clip1d.getAttribute("transform");
+                    const translateMatch = transform ? transform.match(/translate\(\s*(-?\d+\.?\d*)\s*[, ]\s*(-?\d+\.?\d*)\s*\)/) : null;
+                    const h = parseFloat(clip1d.getAttribute("height") || "64");
+
+                    if (translateMatch) {
+                        const tx = parseFloat(translateMatch[1]);
+                        const ty = parseFloat(translateMatch[2]);
+                        clip1d.setAttribute("transform", `translate(${tx} ${ty - 1.2})`);
+                    } else {
+                        const y = parseFloat(clip1d.getAttribute("y") || "740");
+                        clip1d.setAttribute("y", (y - 1.2).toString());
+                    }
+                    clip1d.setAttribute("height", (h + 2.4).toString()); // estende para cima e para baixo
+                }
+                // TORSO/ARMS seam: clip5 bottom (y=567) encontra clip3 top (y=567)
+                // Estende o braço (clip5) para baixo para sobrepor a cintura (clip3)
+                const clip5d = svgElement.querySelector("#clip5_68_32 rect");
+                if (clip5d) {
+                    const h = parseFloat(clip5d.getAttribute("height") || "278");
+                    clip5d.setAttribute("height", (h + 1.2).toString());
+                }
+            }
+
+            // Expand clipPath borders in espacate.svg to overlap adjacent clips and avoid hairline seam gaps
+            if (randomFile === "espacate.svg") {
+                // clip1: y=516, h=466 -> increase height to overlap legs (clip0)
+                const clip1e = svgElement.querySelector("#clip1_73_25 rect");
+                if (clip1e) {
+                    const h = parseFloat(clip1e.getAttribute("height") || "466");
+                    clip1e.setAttribute("height", (h + 1.5).toString());
+                }
+                // clip2: y=310, h=206 -> increase height to overlap clip1
+                const clip2e = svgElement.querySelector("#clip2_73_25 rect");
+                if (clip2e) {
+                    const h = parseFloat(clip2e.getAttribute("height") || "206");
+                    clip2e.setAttribute("height", (h + 1.5).toString());
+                }
+                // clip3: y=138, h=172 -> increase height to overlap clip2
+                const clip3e = svgElement.querySelector("#clip3_73_25 rect");
+                if (clip3e) {
+                    const h = parseFloat(clip3e.getAttribute("height") || "172");
+                    clip3e.setAttribute("height", (h + 1.5).toString());
+                }
+                // clip4: x=525, y=0, w=158, h=516 -> increase height to overlap clip1, and width to overlap clip2/clip3
+                const clip4e = svgElement.querySelector("#clip4_73_25 rect");
+                if (clip4e) {
+                    const w = parseFloat(clip4e.getAttribute("width") || "158");
+                    const h = parseFloat(clip4e.getAttribute("height") || "516");
+                    clip4e.setAttribute("width", (w + 1.5).toString());
+                    clip4e.setAttribute("height", (h + 1.5).toString());
+                }
+            }
+
+            // Expand clipPath borders in ashtasharan.svg to overlap adjacent clips and avoid hairline seam gaps
+            if (randomFile === "ashtasharan.svg") {
+                // clip1 (torso): increase height by 1.5px
+                const clip1e = svgElement.querySelector("#clip1_73_49 rect");
+                if (clip1e) {
+                    const h = parseFloat(clip1e.getAttribute("height") || "595");
+                    clip1e.setAttribute("height", (h + 1.5).toString());
+                }
+                // clip4 (head): increase height by 1.5px
+                const clip4e = svgElement.querySelector("#clip4_73_49 rect");
+                if (clip4e) {
+                    const h = parseFloat(clip4e.getAttribute("height") || "258");
+                    clip4e.setAttribute("height", (h + 1.5).toString());
+                }
+                // clip2 (left arms): increase width by 1.5px
+                const clip2e = svgElement.querySelector("#clip2_73_49 rect");
+                if (clip2e) {
+                    const w = parseFloat(clip2e.getAttribute("width") || "322");
+                    clip2e.setAttribute("width", (w + 1.5).toString());
+                }
+                // clip3 (right arms): shift x left by 1.5px, increase width by 1.5px
+                const clip3e = svgElement.querySelector("#clip3_73_49 rect");
+                if (clip3e) {
+                    const w = parseFloat(clip3e.getAttribute("width") || "203");
+                    const transform = clip3e.getAttribute("transform");
+                    const translateMatch = transform ? transform.match(/translate\(\s*(-?\d+\.?\d*)\s*[, ]\s*(-?\d+\.?\d*)\s*\)/) : null;
+                    if (translateMatch) {
+                        const tx = parseFloat(translateMatch[1]);
+                        const ty = parseFloat(translateMatch[2]);
+                        clip3e.setAttribute("transform", `translate(${tx - 1.5} ${ty})`);
+                    } else {
+                        const x = parseFloat(clip3e.getAttribute("x") || "651");
+                        clip3e.setAttribute("x", (x - 1.5).toString());
+                    }
+                    clip3e.setAttribute("width", (w + 1.5).toString());
+                }
+            }
+
+            // Expand clipPath borders in hamster.svg to overlap adjacent clips and avoid hairline seam gaps
+            if (randomFile === "hamster.svg") {
+                // 1. Baseline expansion for all clips to prevent any minor gaps
+                svgElement.querySelectorAll("clipPath rect").forEach(rect => {
+                    const w = parseFloat(rect.getAttribute("width") || "0");
+                    const h = parseFloat(rect.getAttribute("height") || "0");
+                    if (w > 0 && h > 0) {
+                        rect.setAttribute("width", (w + 2.0).toString());
+                        rect.setAttribute("height", (h + 2.0).toString());
+                    }
+                });
+
+                // 2. Generous vertical overlaps for torso slices (which stack vertically and share the same zone)
+                // clip5, clip4, clip3, clip2 can safely overlap downwards by 15px
+                const torsoClips = ["clip5_73_131", "clip4_73_131", "clip3_73_131", "clip2_73_131"];
+                torsoClips.forEach(id => {
+                    const rect = svgElement.querySelector(`#${id} rect`);
+                    if (rect) {
+                        const h = parseFloat(rect.getAttribute("height") || "0");
+                        rect.setAttribute("height", (h + 15.0).toString());
+                    }
+                });
+
+                // 3. Generous horizontal overlaps for arm slices on the left and right (same zone)
+                // Left arm parts overlapping rightward: clip10, clip11, clip12
+                const leftArmClips = ["clip10_73_131", "clip11_73_131", "clip12_73_131"];
+                leftArmClips.forEach(id => {
+                    const rect = svgElement.querySelector(`#${id} rect`);
+                    if (rect) {
+                        const w = parseFloat(rect.getAttribute("width") || "0");
+                        rect.setAttribute("width", (w + 15.0).toString());
+                    }
+                });
+
+                // Right arm parts overlapping rightward into clip7: clip8, clip9
+                const rightArmClips = ["clip8_73_131", "clip9_73_131"];
+                rightArmClips.forEach(id => {
+                    const rect = svgElement.querySelector(`#${id} rect`);
+                    if (rect) {
+                        const w = parseFloat(rect.getAttribute("width") || "0");
+                        rect.setAttribute("width", (w + 15.0).toString());
+                    }
+                });
+            }
+
+
+            // Identify body groups
+            const bodyGroups = Array.from(svgElement.children).filter(child => child.tagName.toLowerCase() === "g" && child.hasAttribute("clip-path"));
+
+            // 1. Create Background Layer (silhouette body)
+            const bgGroupWrapper = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            bgGroupWrapper.id = "heatmap-bg-layer";
+            bodyGroups.forEach(g => {
+                const clone = g.cloneNode(true);
+                clone.querySelectorAll("path").forEach(p => p.setAttribute("fill", "#181a1f"));
+                bgGroupWrapper.appendChild(clone);
+            });
+
+            // 2. Create Heatmap Layer (solid colored paths, transparent by default)
+            const heatGroupWrapper = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            heatGroupWrapper.id = "heatmap-glow-layer";
+
+            // Create wrapper groups for each mapped zone to prevent overlapping transparency seams
+            const zoneWrappers = {};
+            Object.values(config.clipZones).forEach(zoneName => {
+                if (zoneName && !zoneWrappers[zoneName]) {
+                    const wrapper = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    wrapper.setAttribute("data-zone", zoneName);
+                    wrapper.setAttribute("style", "cursor:pointer; transition: opacity 0.25s ease; opacity: 0;");
+                    heatGroupWrapper.appendChild(wrapper);
+                    zoneWrappers[zoneName] = wrapper;
+                }
+            });
+
+            bodyGroups.forEach(g => {
+                const clone = g.cloneNode(true);
+                const clipPathAttr = clone.getAttribute("clip-path");
+                const match = clipPathAttr.match(/#([^)]+)/);
+                if (match) {
+                    const clipId = match[1];
+                    const zoneName = config.clipZones[clipId];
+                    if (zoneName && zoneWrappers[zoneName]) {
+                        clone.querySelectorAll("path").forEach(p => {
+                            p.setAttribute("fill", "transparent");
+                        });
+                        zoneWrappers[zoneName].appendChild(clone);
+                        return;
+                    }
+                }
+                heatGroupWrapper.appendChild(clone);
+            });
+
+            // 3. Create Outline Layer (two sublayers: clean outer silhouette + subtle inner division outlines)
+            const outlineGroupWrapper = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            outlineGroupWrapper.id = "heatmap-outline-layer";
+            outlineGroupWrapper.setAttribute("style", "pointer-events: none;");
+
+            // A. Outer silhouette outline (continuous, unclipped)
+            if (bodyGroups.length > 0) {
+                const outerClone = bodyGroups[0].cloneNode(true);
+                outerClone.removeAttribute("clip-path");
+                outerClone.querySelectorAll("path").forEach(p => {
+                    p.setAttribute("fill", "none");
+                    p.setAttribute("stroke", "rgba(255, 255, 255, 0.85)");
+                    p.setAttribute("stroke-width", "1.5");
+                    p.setAttribute("vector-effect", "non-scaling-stroke");
+                    p.setAttribute("stroke-linejoin", "round");
+                    p.setAttribute("stroke-linecap", "round");
+                });
+                outlineGroupWrapper.appendChild(outerClone);
+            }
+
+            // B. Internal zone outlines (clipped, subtle division indicator)
+            bodyGroups.forEach(g => {
+                const clipPathAttr = g.getAttribute("clip-path");
+                if (clipPathAttr) {
+                    const match = clipPathAttr.match(/#([^)]+)/);
+                    if (match) {
+                        const clipId = match[1];
+                        const zoneName = config.clipZones[clipId];
+                        // Skip torso slices to avoid vertical outlines between the splits inside the torso
+                        if (zoneName === "torso") {
+                            return;
+                        }
+                    }
+                }
+                const clone = g.cloneNode(true);
+                clone.querySelectorAll("path").forEach(p => {
+                    p.setAttribute("fill", "none");
+                    p.setAttribute("stroke", "rgba(255, 255, 255, 0.25)");
+                    p.setAttribute("stroke-width", "1.2");
+                    p.setAttribute("vector-effect", "non-scaling-stroke");
+                    p.setAttribute("stroke-linejoin", "round");
+                    p.setAttribute("stroke-linecap", "round");
+                });
+                outlineGroupWrapper.appendChild(clone);
+            });
+
+            // Clean up original children and append new layers
+            bodyGroups.forEach(g => svgElement.removeChild(g));
+            svgElement.appendChild(bgGroupWrapper);
+            svgElement.appendChild(heatGroupWrapper);
+            svgElement.appendChild(outlineGroupWrapper);
+
+            // Add class for styling
+            svgElement.classList.add("body-heatmap-svg");
+
+            const bodyContainer = document.querySelector(".body-heatmap-inner");
+            bodyContainer.innerHTML = svgElement.outerHTML;
+
+        } catch (err) {
+            console.error("Erro ao carregar SVG anatômico", err);
+        }
+
         // Render body heatmap
         renderBodyHeatmap(data.hitLocations || null, data.totalHits || 0);
 
@@ -1399,29 +1769,11 @@ async function openProfile(playerName) {
 
 // ---- Body Heatmap ----
 const ZONE_META = {
-    head:  { label: "Cabeça", color: "#ff2222" },
+    head: { label: "Cabeça", color: "#ff2222" },
     torso: { label: "Tronco", color: "#ff7700" },
-    arms:  { label: "Braços", color: "#ffcc00" },
-    legs:  { label: "Pernas", color: "#22dd88" }
+    arms: { label: "Braços", color: "#ffcc00" },
+    legs: { label: "Pernas", color: "#22dd88" }
 };
-
-function heatColor(pct, maxPct) {
-    // Intensity: relative to the max zone — most-hit = brightest red
-    const t = maxPct > 0 ? pct / maxPct : 0;
-    // dark #1a1a1a (0%) → vivid red #ff2222 (100%)
-    const r = Math.round(26 + (255 - 26) * t);
-    const g = Math.round(26 + (34 - 26) * t);
-    const b = Math.round(26 + (34 - 26) * t);
-    return `rgb(${r},${g},${b})`;
-}
-
-function dimColor(pct, maxPct) {
-    const t = maxPct > 0 ? pct / maxPct : 0;
-    const r = Math.round(15 + (120 - 15) * t);
-    const g = Math.round(15 + (10 - 15) * t);
-    const b = Math.round(15 + (10 - 15) * t);
-    return `rgb(${r},${g},${b})`;
-}
 
 function renderBodyHeatmap(hitLocations, totalHits) {
     const emptyEl = document.getElementById("bodyHeatmapEmpty");
@@ -1432,62 +1784,139 @@ function renderBodyHeatmap(hitLocations, totalHits) {
 
     if (!hitLocations || totalHits === 0) {
         emptyEl.style.display = "block";
-        // Reset all zones to dark default
-        ["head", "torso", "arms", "legs"].forEach(zone => {
-            const inner = document.getElementById(`zoneGradStop-${zone}-inner`);
-            const outer = document.getElementById(`zoneGradStop-${zone}-outer`);
-            if (inner) inner.setAttribute("stop-color", "#2a2a2a");
-            if (outer) outer.setAttribute("stop-color", "#111");
+        // Reset all zones to transparent
+        document.querySelectorAll(`.body-heatmap-svg [data-zone]`).forEach(el => {
+            el.querySelectorAll("path").forEach(p => p.setAttribute("fill", "transparent"));
+            el.style.opacity = "0";
         });
         return;
     }
     emptyEl.style.display = "none";
 
-    // Find max pct for relative intensity scaling
-    const maxPct = Math.max(...Object.keys(ZONE_META).map(z => (hitLocations[z] || {pct:0}).pct || 0));
+    const baseColor = "#ff3b30"; // Vermelho premium uniforme
+    const maxPct = Math.max(...Object.keys(ZONE_META).map(z => (hitLocations[z] || { pct: 0 }).pct || 0));
 
     Object.entries(ZONE_META).forEach(([zone, meta]) => {
         const info = hitLocations[zone] || { count: 0, pct: 0 };
         const pct = info.pct || 0;
         const count = info.count || 0;
-        const color = heatColor(pct, maxPct);
-        const dim   = dimColor(pct, maxPct);
+
+        const t = maxPct > 0 ? pct / maxPct : 0;
+        // Zonas com hits: cor sólida + opacidade normal. Zonas com 0%: fill cor sólida + opacidade 0 (invisível, mas ativa pointer-events).
+        const opacity = pct > 0 ? (0.2 + 0.65 * t) : 0;
+        const color = baseColor;
+        const legendColor = pct > 0 ? baseColor : "#2a2a2a";
+
         // Bar width relative to max zone (so top zone = 100% width)
         const barWidth = maxPct > 0 ? Math.round((pct / maxPct) * 100) : 0;
 
-        // Color SVG gradient stops
-        const inner = document.getElementById(`zoneGradStop-${zone}-inner`);
-        const outer = document.getElementById(`zoneGradStop-${zone}-outer`);
-        if (inner) inner.setAttribute("stop-color", color);
-        if (outer) outer.setAttribute("stop-color", dim);
+        // Apply color and opacity — 0% zones use opacity 0 but keep pointer-events active
+        const zoneEls = document.querySelectorAll(`[data-zone="${zone}"]`);
+        zoneEls.forEach(zoneEl => {
+            zoneEl.querySelectorAll("path").forEach(p => {
+                p.setAttribute("fill", color);
+                p.setAttribute("pointer-events", "all");
+            });
+            zoneEl.style.opacity = opacity.toString();
+            zoneEl.style.cursor = "pointer";
 
-        // Tooltip on hover
-        const zoneEl = document.getElementById(`zone-${zone}`);
-        if (zoneEl) {
+            // Hover ativo para TODAS as zonas, inclusive as com 0%
             zoneEl.onmouseenter = (e) => {
                 tooltip.innerHTML = `<strong>${meta.label}</strong>${count} acertos &bull; ${pct}%`;
                 tooltip.style.display = "block";
+
+                // Highlight hovered zone, dim others relatively
+                document.querySelectorAll(`.body-heatmap-svg [data-zone]`).forEach(el => {
+                    const elZone = el.getAttribute("data-zone");
+                    const elInfo = hitLocations[elZone] || { pct: 0 };
+                    if (elZone === zone) {
+                        if (pct === 0) {
+                            el.style.opacity = "0.08";
+                        } else {
+                            el.style.opacity = "0.95";
+                        }
+                    } else {
+                        const otherT = maxPct > 0 ? elInfo.pct / maxPct : 0;
+                        const otherOpacity = elInfo.pct > 0 ? (0.2 + 0.65 * otherT) : 0;
+                        el.style.opacity = elInfo.pct > 0 ? (otherOpacity * 0.35).toString() : "0";
+                    }
+                });
             };
             zoneEl.onmousemove = (e) => {
                 tooltip.style.left = (e.clientX + 14) + "px";
-                tooltip.style.top  = (e.clientY - 10) + "px";
+                tooltip.style.top = (e.clientY - 10) + "px";
             };
             zoneEl.onmouseleave = () => {
                 tooltip.style.display = "none";
+
+                // Restore all zones to default state
+                document.querySelectorAll(`.body-heatmap-svg [data-zone]`).forEach(el => {
+                    const elZone = el.getAttribute("data-zone");
+                    const elInfo = hitLocations[elZone] || { pct: 0 };
+                    const elT = maxPct > 0 ? elInfo.pct / maxPct : 0;
+                    if (elInfo.pct > 0) {
+                        el.style.opacity = (0.2 + 0.65 * elT).toString();
+                    } else {
+                        el.style.opacity = "0";
+                    }
+                });
             };
-        }
+        });
 
         // Legend row
         const row = document.createElement("div");
         row.className = "heatmap-legend-row";
         row.innerHTML = `
-            <span class="heatmap-legend-dot" style="background:${color};box-shadow:0 0 4px ${color};"></span>
+            <span class="heatmap-legend-dot" style="background:${legendColor};opacity:${pct > 0 ? opacity : 0.3};box-shadow:0 0 4px ${legendColor};"></span>
             <span class="heatmap-legend-label">${meta.label}</span>
             <div class="heatmap-legend-bar-wrap">
-                <div class="heatmap-legend-bar" style="width:0%;background:${color};" data-target="${barWidth}"></div>
+                <div class="heatmap-legend-bar" style="width:0%;background:${legendColor};opacity:${pct > 0 ? opacity : 0.3};" data-target="${barWidth}"></div>
             </div>
             <span class="heatmap-legend-pct">${pct}%</span>
         `;
+
+        // Highlight SVG zone when hovering over the legend row
+        row.onmouseenter = (e) => {
+            tooltip.innerHTML = `<strong>${meta.label}</strong>${count} acertos &bull; ${pct}%`;
+            tooltip.style.display = "block";
+
+            document.querySelectorAll(`.body-heatmap-svg [data-zone]`).forEach(el => {
+                const elZone = el.getAttribute("data-zone");
+                const elInfo = hitLocations[elZone] || { pct: 0 };
+                if (elZone === zone) {
+                    if (pct === 0) {
+                        el.style.opacity = "0.08";
+                    } else {
+                        el.style.opacity = "0.95";
+                    }
+                } else {
+                    const otherT = maxPct > 0 ? elInfo.pct / maxPct : 0;
+                    const otherOpacity = elInfo.pct > 0 ? (0.2 + 0.65 * otherT) : 0;
+                    el.style.opacity = elInfo.pct > 0 ? (otherOpacity * 0.35).toString() : "0";
+                }
+            });
+        };
+
+        row.onmousemove = (e) => {
+            tooltip.style.left = (e.clientX + 14) + "px";
+            tooltip.style.top = (e.clientY - 10) + "px";
+        };
+
+        row.onmouseleave = () => {
+            tooltip.style.display = "none";
+
+            document.querySelectorAll(`.body-heatmap-svg [data-zone]`).forEach(el => {
+                const elZone = el.getAttribute("data-zone");
+                const elInfo = hitLocations[elZone] || { pct: 0 };
+                const elT = maxPct > 0 ? elInfo.pct / maxPct : 0;
+                if (elInfo.pct > 0) {
+                    el.style.opacity = (0.2 + 0.65 * elT).toString();
+                } else {
+                    el.style.opacity = "0";
+                }
+            });
+        };
+
         legendEl.appendChild(row);
     });
 
@@ -1584,18 +2013,18 @@ async function loadTop3Ranking() {
         const data = await res.json();
         const top3 = data.slice(0, 3);
         const listDiv = document.getElementById("top3List");
-        
+
         if (top3.length === 0) {
             document.getElementById("top3FloatingPanel").style.display = "none";
             return;
         }
-        
+
         document.getElementById("top3FloatingPanel").style.display = "flex";
-        
+
         listDiv.innerHTML = top3.map((p, idx) => {
             const rank = idx + 1;
             const rankText = rank === 1 ? "1º" : rank === 2 ? "2º" : "3º";
-            
+
             const avatarHtml = p.avatar
                 ? `<img src="${p.avatar}" class="top3-avatar" onclick="openProfile('${escHtml(p.player)}')" title="Clique para ver perfil">`
                 : `<i class="fas fa-user-circle top3-avatar" style="font-size: 56px; display: flex; align-items: center; justify-content: center; color: #666; border: 2px solid transparent; cursor: pointer;" onclick="openProfile('${escHtml(p.player)}')"></i>`;
@@ -1705,16 +2134,16 @@ document.getElementById("avatarInput").onchange = (e) => {
             const cropImage = document.getElementById("cropImage");
             cropImage.src = ev.target.result;
             document.getElementById("previewImg").dataset.original = ev.target.result;
-            
+
             // Show crop modal
             document.getElementById("cropModal").style.display = "flex";
-            
+
             // Destroy existing cropper if any
             if (avatarCropper) {
                 avatarCropper.destroy();
                 avatarCropper = null;
             }
-            
+
             // Initialize Cropper.js after modal displays
             setTimeout(() => {
                 avatarCropper = new Cropper(cropImage, {
@@ -1781,11 +2210,11 @@ document.getElementById("cropConfirmBtn").onclick = () => {
             width: 300,
             height: 300
         });
-        
+
         const croppedDataUrl = canvas.toDataURL("image/jpeg", 0.9);
         document.getElementById("previewImg").src = croppedDataUrl;
         document.getElementById("uploadPreview").style.display = "block";
-        
+
         // Hide modal and cleanup
         document.getElementById("cropModal").style.display = "none";
         avatarCropper.destroy();
@@ -1803,9 +2232,9 @@ async function handleUpload() {
         const res = await fetch(`${API_URL}/upload-avatar`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                name: saved.name, 
-                code: saved.code, 
+            body: JSON.stringify({
+                name: saved.name,
+                code: saved.code,
                 image: imgData,
                 originalImage: originalImgData
             })

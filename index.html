@@ -205,24 +205,24 @@
                 <button class="weapon-btn" data-weapon="Personalizadas">Personalizadas</button>
             </div>
 
-             <label id="labelFF">Friendly Fire</label>
-             <div class="ff-grid" id="ffGrid">
-                 <button class="ff-btn active" data-ff="0">Sem FF</button>
-                 <button class="ff-btn" data-ff="1">Com FF</button>
-             </div>
+            <label id="labelFF">Friendly Fire</label>
+            <div class="ff-grid" id="ffGrid">
+                <button class="ff-btn active" data-ff="0">Sem FF</button>
+                <button class="ff-btn" data-ff="1">Com FF</button>
+            </div>
 
-             <div class="limits-row">
-                 <div class="limit-col">
-                     <label for="voteTimelimit">Tempo (minutos)</label>
-                     <input type="number" id="voteTimelimit" min="0" placeholder="5" class="limit-input">
-                 </div>
-                 <div class="limit-col">
-                     <label for="voteFraglimit">Limite de Kills</label>
-                     <input type="number" id="voteFraglimit" min="0" placeholder="10" class="limit-input">
-                 </div>
-             </div>
+            <div class="limits-row">
+                <div class="limit-col">
+                    <label for="voteTimelimit">Tempo (minutos)</label>
+                    <input type="number" id="voteTimelimit" min="0" placeholder="5" class="limit-input">
+                </div>
+                <div class="limit-col">
+                    <label for="voteFraglimit">Limite de Kills</label>
+                    <input type="number" id="voteFraglimit" min="0" placeholder="10" class="limit-input">
+                </div>
+            </div>
 
-             <button id="confirmVote">Confirmar Voto</button>
+            <button id="confirmVote">Confirmar Voto</button>
         </div>
     </div>
 
@@ -274,47 +274,70 @@
                 <div class="profile-col profile-col-stats">
                     <div class="profile-stats">
                         <div class="profile-card">
-                            <div class="profile-card-header"><i class="fas fa-crosshairs"></i><h3>Kills</h3></div>
-                            <div class="profile-card-body"><span class="profile-card-value" id="profileKills">-</span></div>
+                            <div class="profile-card-header"><i class="fas fa-crosshairs"></i>
+                                <h3>Kills</h3>
+                            </div>
+                            <div class="profile-card-body"><span class="profile-card-value" id="profileKills">-</span>
+                            </div>
                             <div class="profile-card-footer"></div>
                         </div>
                         <div class="profile-card">
-                            <div class="profile-card-header"><i class="fas fa-skull"></i><h3>Mortes</h3></div>
-                            <div class="profile-card-body"><span class="profile-card-value" id="profileDeaths">-</span></div>
+                            <div class="profile-card-header"><i class="fas fa-skull"></i>
+                                <h3>Mortes</h3>
+                            </div>
+                            <div class="profile-card-body"><span class="profile-card-value" id="profileDeaths">-</span>
+                            </div>
                             <div class="profile-card-footer"></div>
                         </div>
                         <div class="profile-card">
-                            <div class="profile-card-header"><i class="fas fa-balance-scale"></i><h3>K/D</h3></div>
-                            <div class="profile-card-body"><span class="profile-card-value" id="profileKD">-</span></div>
+                            <div class="profile-card-header"><i class="fas fa-balance-scale"></i>
+                                <h3>K/D</h3>
+                            </div>
+                            <div class="profile-card-body"><span class="profile-card-value" id="profileKD">-</span>
+                            </div>
                             <div class="profile-card-footer"></div>
                         </div>
                         <div class="profile-card">
-                            <div class="profile-card-header"><i class="fas fa-stopwatch"></i><h3>Kills/min</h3></div>
-                            <div class="profile-card-body"><span class="profile-card-value" id="profileKillsMin">-</span></div>
+                            <div class="profile-card-header"><i class="fas fa-stopwatch"></i>
+                                <h3>Kills/min</h3>
+                            </div>
+                            <div class="profile-card-body"><span class="profile-card-value"
+                                    id="profileKillsMin">-</span></div>
                             <div class="profile-card-footer"></div>
                         </div>
                         <div class="profile-card">
-                            <div class="profile-card-header"><i class="fas fa-gun"></i><h3>Melhor Arma</h3></div>
+                            <div class="profile-card-header"><i class="fas fa-gun"></i>
+                                <h3>Melhor Arma</h3>
+                            </div>
                             <div class="profile-card-body">
                                 <img id="profileWeaponImg" src="" style="max-width:70px;max-height:35px;display:none;">
                             </div>
                             <div class="profile-card-footer" id="profileWeapon">-</div>
                         </div>
                         <div class="profile-card">
-                            <div class="profile-card-header"><i class="fas fa-map-marked-alt"></i><h3>Melhor Mapa</h3></div>
+                            <div class="profile-card-header"><i class="fas fa-map-marked-alt"></i>
+                                <h3>Melhor Mapa</h3>
+                            </div>
                             <div class="profile-card-body">
-                                <img id="profileBestMapImg" src="" style="width:70px;height:35px;border-radius:4px;object-fit:cover;display:none;border:1px solid rgba(255,51,51,0.3);">
+                                <img id="profileBestMapImg" src=""
+                                    style="width:70px;height:35px;border-radius:4px;object-fit:cover;display:none;border:1px solid rgba(255,51,51,0.3);">
                             </div>
                             <div class="profile-card-footer" id="profileBestMap">-</div>
                         </div>
                         <div class="profile-card">
-                            <div class="profile-card-header"><i class="fas fa-fire"></i><h3>Maior Seq.</h3></div>
-                            <div class="profile-card-body"><span class="profile-card-value" id="profileMaxStreak">-</span></div>
+                            <div class="profile-card-header"><i class="fas fa-fire"></i>
+                                <h3>Maior Seq.</h3>
+                            </div>
+                            <div class="profile-card-body"><span class="profile-card-value"
+                                    id="profileMaxStreak">-</span></div>
                             <div class="profile-card-footer"></div>
                         </div>
                         <div class="profile-card">
-                            <div class="profile-card-header"><i class="fas fa-bullseye"></i><h3>HS%</h3></div>
-                            <div class="profile-card-body"><span class="profile-card-value" id="profileHS">-</span></div>
+                            <div class="profile-card-header"><i class="fas fa-bullseye"></i>
+                                <h3>HS</h3>
+                            </div>
+                            <div class="profile-card-body"><span class="profile-card-value" id="profileHS">-</span>
+                            </div>
                             <div class="profile-card-footer"></div>
                         </div>
                     </div>
@@ -336,64 +359,6 @@
                 <div class="profile-col profile-col-heatmap">
                     <h4 class="profile-col-title"><i class="fas fa-crosshairs"></i> Mapa de Acertos</h4>
                     <div class="body-heatmap-inner">
-                        <svg id="bodyHeatmapSvg" viewBox="0 0 100 230" xmlns="http://www.w3.org/2000/svg" class="body-heatmap-svg">
-                            <defs>
-                                <radialGradient id="zoneGrad-head" cx="50%" cy="50%" r="55%">
-                                    <stop offset="0%" stop-color="#1e1e1e" id="zoneGradStop-head-inner"/>
-                                    <stop offset="100%" stop-color="#111" id="zoneGradStop-head-outer"/>
-                                </radialGradient>
-                                <radialGradient id="zoneGrad-torso" cx="50%" cy="45%" r="65%">
-                                    <stop offset="0%" stop-color="#1e1e1e" id="zoneGradStop-torso-inner"/>
-                                    <stop offset="100%" stop-color="#111" id="zoneGradStop-torso-outer"/>
-                                </radialGradient>
-                                <radialGradient id="zoneGrad-arms" cx="50%" cy="50%" r="55%">
-                                    <stop offset="0%" stop-color="#1e1e1e" id="zoneGradStop-arms-inner"/>
-                                    <stop offset="100%" stop-color="#111" id="zoneGradStop-arms-outer"/>
-                                </radialGradient>
-                                <radialGradient id="zoneGrad-legs" cx="50%" cy="35%" r="65%">
-                                    <stop offset="0%" stop-color="#1e1e1e" id="zoneGradStop-legs-inner"/>
-                                    <stop offset="100%" stop-color="#111" id="zoneGradStop-legs-outer"/>
-                                </radialGradient>
-                                <filter id="bodyGlow" x="-20%" y="-20%" width="140%" height="140%">
-                                    <feGaussianBlur stdDeviation="1.5" result="blur"/>
-                                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                                </filter>
-                            </defs>
-                            <!-- HEAD -->
-                            <g id="zone-head" class="body-zone" data-zone="head">
-                                <ellipse cx="50" cy="14" rx="13" ry="13" fill="url(#zoneGrad-head)" stroke="#3a3a3a" stroke-width="1"/>
-                                <rect x="46" y="25" width="8" height="7" rx="2" fill="url(#zoneGrad-head)" stroke="#3a3a3a" stroke-width="0.8"/>
-                            </g>
-                            <!-- TORSO -->
-                            <g id="zone-torso" class="body-zone" data-zone="torso">
-                                <path d="M33 32 Q29 36 28 42 L27 85 Q27 92 35 92 L65 92 Q73 92 73 85 L72 42 Q71 36 67 32 Z"
-                                    fill="url(#zoneGrad-torso)" stroke="#3a3a3a" stroke-width="1"/>
-                            </g>
-                            <!-- ARMS -->
-                            <g id="zone-arms" class="body-zone" data-zone="arms">
-                                <path d="M27 40 Q20 43 18 51 L15 82 Q15 88 19 89 L26 89 Q30 88 31 82 L30 48 Z"
-                                    fill="url(#zoneGrad-arms)" stroke="#3a3a3a" stroke-width="0.8"/>
-                                <ellipse cx="17" cy="93" rx="4" ry="5" fill="url(#zoneGrad-arms)" stroke="#3a3a3a" stroke-width="0.8"/>
-                                <path d="M73 40 Q80 43 82 51 L85 82 Q85 88 81 89 L74 89 Q70 88 69 82 L70 48 Z"
-                                    fill="url(#zoneGrad-arms)" stroke="#3a3a3a" stroke-width="0.8"/>
-                                <ellipse cx="83" cy="93" rx="4" ry="5" fill="url(#zoneGrad-arms)" stroke="#3a3a3a" stroke-width="0.8"/>
-                            </g>
-                            <!-- LEGS -->
-                            <g id="zone-legs" class="body-zone" data-zone="legs">
-                                <path d="M36 92 L50 92 L48 148 Q47 154 42 155 L37 153 Q33 148 34 141 Z"
-                                    fill="url(#zoneGrad-legs)" stroke="#3a3a3a" stroke-width="0.8"/>
-                                <path d="M37 153 L42 155 L41 196 Q41 202 37 204 L32 202 Q30 198 31 192 Z"
-                                    fill="url(#zoneGrad-legs)" stroke="#3a3a3a" stroke-width="0.8"/>
-                                <path d="M31 194 L37 204 Q37 209 34 211 L27 212 Q24 210 25 206 Q26 201 31 199 Z"
-                                    fill="url(#zoneGrad-legs)" stroke="#3a3a3a" stroke-width="0.8"/>
-                                <path d="M64 92 L50 92 L52 148 Q53 154 58 155 L63 153 Q67 148 66 141 Z"
-                                    fill="url(#zoneGrad-legs)" stroke="#3a3a3a" stroke-width="0.8"/>
-                                <path d="M63 153 L58 155 L59 196 Q59 202 63 204 L68 202 Q70 198 69 192 Z"
-                                    fill="url(#zoneGrad-legs)" stroke="#3a3a3a" stroke-width="0.8"/>
-                                <path d="M69 194 L63 204 Q63 209 66 211 L73 212 Q76 210 75 206 Q74 201 69 199 Z"
-                                    fill="url(#zoneGrad-legs)" stroke="#3a3a3a" stroke-width="0.8"/>
-                            </g>
-                        </svg>
                     </div>
                     <div class="body-heatmap-legend" id="bodyHeatmapLegend"></div>
                     <p class="body-heatmap-empty" id="bodyHeatmapEmpty">Sem dados ainda</p>
@@ -410,7 +375,7 @@
         </div>
     </div>
 
-        <!-- Modal de Admin -->
+    <!-- Modal de Admin -->
     <div id="adminModal" class="modal">
         <div class="modal-content admin-modal">
             <span class="close" id="adminClose">&times;</span>

@@ -2159,8 +2159,9 @@ table.dataTable tbody td {
 }
 
 .body-heatmap-svg {
-    width: 130px;
-    height: 300px;
+    height: 280px;
+    width: auto;
+    max-width: 100%;
     filter: drop-shadow(0 0 8px rgba(0,0,0,0.9));
     display: block;
 }
@@ -2210,6 +2211,15 @@ table.dataTable tbody td {
     align-items: center;
     gap: 8px;
     font-size: 0.78em;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.heatmap-legend-row:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    transform: translateX(4px);
 }
 
 .heatmap-legend-dot {
