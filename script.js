@@ -1439,6 +1439,26 @@ function renderComparison(playerA, playerB) {
     const svgHtmlA = makeSvgUnique(baseSvg, "comp_a");
     const svgHtmlB = makeSvgUnique(baseSvg, "comp_b");
     
+    const precisionRowsHtml = Object.entries(ZONE_META).map(([zone, meta]) => {
+        const pctA = playerA.hitLocations && playerA.hitLocations[zone] ? playerA.hitLocations[zone].pct : 0.0;
+        const pctB = playerB.hitLocations && playerB.hitLocations[zone] ? playerB.hitLocations[zone].pct : 0.0;
+        
+        let winnerClassA = "";
+        let winnerClassB = "";
+        if (pctA !== pctB) {
+            if (pctA > pctB) winnerClassA = "winner";
+            else winnerClassB = "winner";
+        }
+        
+        return `
+        <div class="comp-precision-row">
+            <span class="comp-precision-val val-a ${winnerClassA}">${pctA.toFixed(1)}%</span>
+            <span class="comp-precision-label">${meta.label}</span>
+            <span class="comp-precision-val val-b ${winnerClassB}">${pctB.toFixed(1)}%</span>
+        </div>
+        `;
+    }).join("");
+    
     const heatmapsHtml = `
     <div class="comparison-section">
         <h4 class="comparison-section-title"><i class="fas fa-crosshairs"></i> Duelo de Precisão</h4>
@@ -1455,6 +1475,14 @@ function renderComparison(playerA, playerB) {
                     ${svgHtmlB}
                 </div>
             </div>
+        </div>
+        <div class="comp-precision-table">
+            <div class="comp-precision-row header">
+                <span class="comp-precision-val val-a">${playerA.player}</span>
+                <span class="comp-precision-label">Zona de Impacto</span>
+                <span class="comp-precision-val val-b">${playerB.player}</span>
+            </div>
+            ${precisionRowsHtml}
         </div>
     </div>
     `;

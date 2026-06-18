@@ -2726,4 +2726,83 @@ table.dataTable tbody td {
     line-height: 1.3;
 }
 
+/* Precision Duel comparison table styling */
+.comp-precision-table {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 12px 20px;
+    margin-top: 15px;
+    max-width: 450px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.comp-precision-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.comp-precision-row:last-child {
+    border-bottom: none;
+}
+
+.comp-precision-row.header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 6px;
+    margin-bottom: 4px;
+}
+
+.comp-precision-row.header .comp-precision-val {
+    font-weight: 700;
+    color: #888;
+    font-size: 0.85em;
+}
+
+.comp-precision-row.header .comp-precision-label {
+    font-weight: 700;
+    color: #eee;
+    font-size: 0.9em;
+}
+
+.comp-precision-val {
+    width: 30%;
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #aaa;
+}
+
+.comp-precision-val.val-a {
+    text-align: left;
+}
+
+.comp-precision-val.val-b {
+    text-align: right;
+}
+
+.comp-precision-val.val-a.winner {
+    color: #ff3333;
+    text-shadow: 0 0 6px rgba(255, 51, 51, 0.2);
+}
+
+.comp-precision-val.val-b.winner {
+    color: #00ffff;
+    text-shadow: 0 0 6px rgba(0, 255, 255, 0.2);
+}
+
+.comp-precision-label {
+    width: 40%;
+    text-align: center;
+    font-size: 0.9em;
+    color: #eee;
+}
+
+
 
