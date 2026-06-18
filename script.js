@@ -1427,14 +1427,17 @@ function renderComparison(playerA, playerB) {
     `;
     
     const baseSvg = document.querySelector(".body-heatmap-inner").innerHTML;
-    const svgHtmlA = baseSvg
-        .replace(/id="clip/g, 'id="clip_comp_a_')
-        .replace(/url\(#clip/g, 'url(#clip_comp_a_')
-        .replace(/id="heatmap-/g, 'id="heatmap-comp-a-');
-    const svgHtmlB = baseSvg
-        .replace(/id="clip/g, 'id="clip_comp_b_')
-        .replace(/url\(#clip/g, 'url(#clip_comp_b_')
-        .replace(/id="heatmap-/g, 'id="heatmap-comp-b-');
+    
+    // Helper to make SVG clip paths and IDs unique per player container to resolve clip-path duplication conflicts
+    const makeSvgUnique = (svgText, suffix) => {
+        return svgText
+            .replace(/id=(?:["'])?clip/gi, `id="clip_${suffix}_`)
+            .replace(/id=(?:["'])?heatmap-/gi, `id="heatmap-${suffix}-`)
+            .replace(/url\((?:&quot;|\\?["'])?#clip/gi, match => match.replace('#clip', `#clip_${suffix}_`));
+    };
+    
+    const svgHtmlA = makeSvgUnique(baseSvg, "comp_a");
+    const svgHtmlB = makeSvgUnique(baseSvg, "comp_b");
     
     const heatmapsHtml = `
     <div class="comparison-section">
@@ -1504,6 +1507,7 @@ function renderComparison(playerA, playerB) {
                     <i class="${meta.icon}"></i>
                     <span class="comp-ach-name">${meta.name}</span>
                 </div>
+                <span class="comp-ach-desc">${meta.description}</span>
             </div>
             
             <div class="comp-ach-player-side side-b">

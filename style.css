@@ -2718,3 +2718,12 @@ table.dataTable tbody td {
     box-shadow: 0 0 10px rgba(255, 59, 48, 0.4);
 }
 
+.comp-ach-desc {
+    font-size: 0.72em;
+    color: #888;
+    margin-top: 3px;
+    max-width: 250px;
+    line-height: 1.3;
+}
+
+
