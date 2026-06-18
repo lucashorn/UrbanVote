@@ -2653,3 +2653,68 @@ table.dataTable tbody td {
     color: #666;
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
+
+/* Premium Comparison controls styling */
+#profileCompareBtn {
+    background: rgba(255, 255, 255, 0.05);
+    color: #eee;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 0.85em;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease-in-out;
+}
+
+#profileCompareBtn:hover {
+    background: rgba(255, 59, 48, 0.15);
+    color: #ff3b30;
+    border-color: rgba(255, 59, 48, 0.5);
+    box-shadow: 0 0 10px rgba(255, 59, 48, 0.35);
+    transform: translateY(-1px);
+}
+
+#profileCompareBtn:active {
+    transform: translateY(0);
+}
+
+.compare-select {
+    background: #181a1f;
+    color: #eee;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.85em;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.compare-select:focus {
+    border-color: #ff3b30;
+}
+
+#closeCompareBtn {
+    background: rgba(255, 59, 48, 0.1);
+    color: #ff3b30;
+    border: 1px solid rgba(255, 59, 48, 0.3);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#closeCompareBtn:hover {
+    background: #ff3b30;
+    color: #fff;
+    border-color: #ff3b30;
+    box-shadow: 0 0 10px rgba(255, 59, 48, 0.4);
+}
+

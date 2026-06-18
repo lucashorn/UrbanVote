@@ -1426,7 +1426,15 @@ function renderComparison(playerA, playerB) {
     </div>
     `;
     
-    const svgHtml = document.querySelector(".body-heatmap-inner").innerHTML;
+    const baseSvg = document.querySelector(".body-heatmap-inner").innerHTML;
+    const svgHtmlA = baseSvg
+        .replace(/id="clip/g, 'id="clip_comp_a_')
+        .replace(/url\(#clip/g, 'url(#clip_comp_a_')
+        .replace(/id="heatmap-/g, 'id="heatmap-comp-a-');
+    const svgHtmlB = baseSvg
+        .replace(/id="clip/g, 'id="clip_comp_b_')
+        .replace(/url\(#clip/g, 'url(#clip_comp_b_')
+        .replace(/id="heatmap-/g, 'id="heatmap-comp-b-');
     
     const heatmapsHtml = `
     <div class="comparison-section">
@@ -1435,13 +1443,13 @@ function renderComparison(playerA, playerB) {
             <div class="comp-heatmap-wrapper player-a">
                 <span class="comp-heatmap-title">${playerA.player}</span>
                 <div id="compHeatmapA" class="comp-heatmap-svg-container">
-                    ${svgHtml}
+                    ${svgHtmlA}
                 </div>
             </div>
             <div class="comp-heatmap-wrapper player-b">
                 <span class="comp-heatmap-title">${playerB.player}</span>
                 <div id="compHeatmapB" class="comp-heatmap-svg-container">
-                    ${svgHtml}
+                    ${svgHtmlB}
                 </div>
             </div>
         </div>
@@ -1463,22 +1471,18 @@ function renderComparison(playerA, playerB) {
         const progressPctA = achA.target > 0 ? Math.min(100, Math.round((achA.current / achA.target) * 100)) : 0;
         const progressPctB = achB.target > 0 ? Math.min(100, Math.round((achB.current / achB.target) * 100)) : 0;
         
-        let diffClass = "tie";
-        let diffText = "Empate";
+        let diffHtmlA = "";
+        let diffHtmlB = "";
         
         if (achA.level > achB.level) {
-            diffClass = "ahead-a";
-            diffText = `+${achA.level - achB.level} Nív`;
+            diffHtmlA = `<span class="comp-ach-diff ahead-a">+${achA.level - achB.level} Nív</span>`;
         } else if (achB.level > achA.level) {
-            diffClass = "ahead-b";
-            diffText = `+${achB.level - achA.level} Nív`;
+            diffHtmlB = `<span class="comp-ach-diff ahead-b">+${achB.level - achA.level} Nív</span>`;
         } else {
             if (achA.unlocked && !achB.unlocked) {
-                diffClass = "ahead-a";
-                diffText = `Liberado`;
+                diffHtmlA = `<span class="comp-ach-diff ahead-a">Liberado</span>`;
             } else if (!achA.unlocked && achB.unlocked) {
-                diffClass = "ahead-b";
-                diffText = `Liberado`;
+                diffHtmlB = `<span class="comp-ach-diff ahead-b">Liberado</span>`;
             }
         }
         
@@ -1486,6 +1490,7 @@ function renderComparison(playerA, playerB) {
         <div class="comp-ach-row">
             <div class="comp-ach-player-side side-a">
                 <div class="comp-ach-status">
+                    ${diffHtmlA}
                     <span class="comp-ach-badge ${rarityClassA}">${lvlTextA}</span>
                     <span class="comp-ach-val-text">${achA.current}/${achA.target}</span>
                 </div>
@@ -1499,11 +1504,11 @@ function renderComparison(playerA, playerB) {
                     <i class="${meta.icon}"></i>
                     <span class="comp-ach-name">${meta.name}</span>
                 </div>
-                <span class="comp-ach-diff ${diffClass}">${diffText}</span>
             </div>
             
             <div class="comp-ach-player-side side-b">
                 <div class="comp-ach-status">
+                    ${diffHtmlB}
                     <span class="comp-ach-badge ${rarityClassB}">${lvlTextB}</span>
                     <span class="comp-ach-val-text">${achB.current}/${achB.target}</span>
                 </div>
