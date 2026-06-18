@@ -1277,11 +1277,343 @@ const ACHIEVEMENTS_METADATA = {
 };
 
 
+// --- Profile Modal & Comparison ---
+let activeProfileData = null;
+
+function resetComparisonMode() {
+    const selectorContainer = document.getElementById("compareSelectorContainer");
+    const compareBtn = document.getElementById("profileCompareBtn");
+    const closeBtn = document.getElementById("closeCompareBtn");
+    const compLayout = document.getElementById("profileComparisonLayout");
+    const normalLayout = document.querySelector(".profile-body-layout");
+    
+    if (selectorContainer) selectorContainer.style.display = "none";
+    if (compareBtn) {
+        compareBtn.style.display = "flex";
+        compareBtn.disabled = false;
+    }
+    if (closeBtn) closeBtn.style.display = "none";
+    if (compLayout) {
+        compLayout.style.display = "none";
+        compLayout.innerHTML = "";
+    }
+    if (normalLayout) normalLayout.style.display = "flex";
+    
+    const selectEl = document.getElementById("comparePlayerSelect");
+    if (selectEl) selectEl.value = "";
+}
+
+function colorMiniHeatmap(container, hitLocations) {
+    if (!container) return;
+    if (!hitLocations) {
+        container.querySelectorAll(`[data-zone]`).forEach(el => {
+            el.querySelectorAll("path").forEach(p => p.setAttribute("fill", "transparent"));
+            el.style.opacity = "0";
+        });
+        return;
+    }
+    const baseColor = "#ff3b30";
+    const maxPct = Math.max(...Object.keys(ZONE_META).map(z => (hitLocations[z] || { pct: 0 }).pct || 0));
+    
+    Object.entries(ZONE_META).forEach(([zone, meta]) => {
+        const info = hitLocations[zone] || { count: 0, pct: 0 };
+        const pct = info.pct || 0;
+        const t = maxPct > 0 ? pct / maxPct : 0;
+        const opacity = pct > 0 ? (0.2 + 0.65 * t) : 0;
+        
+        const zoneEls = container.querySelectorAll(`[data-zone="${zone}"]`);
+        zoneEls.forEach(zoneEl => {
+            zoneEl.querySelectorAll("path").forEach(p => {
+                p.setAttribute("fill", baseColor);
+                p.setAttribute("pointer-events", "all");
+            });
+            zoneEl.style.opacity = opacity.toString();
+        });
+    });
+}
+
+function getStatRowHtml(label, valA, valB, higherIsBetter = true) {
+    let winnerClassA = "";
+    let winnerClassB = "";
+    
+    const numA = parseFloat(valA) || 0;
+    const numB = parseFloat(valB) || 0;
+    
+    if (numA !== numB) {
+        if (higherIsBetter) {
+            if (numA > numB) winnerClassA = "winner";
+            else winnerClassB = "winner";
+        } else {
+            if (numA < numB) winnerClassA = "winner";
+            else winnerClassB = "winner";
+        }
+    }
+    
+    return `
+    <div class="comp-stat-row">
+        <span class="comp-stat-val val-a ${winnerClassA}">${valA}</span>
+        <span class="comp-stat-label">${label}</span>
+        <span class="comp-stat-val val-b ${winnerClassB}">${valB}</span>
+    </div>
+    `;
+}
+
+function getRarityClass(ach) {
+    if (!ach.unlocked) return "locked";
+    const pct = ach.percent;
+    if (pct < 5) return "legendary";
+    if (pct < 20) return "epic";
+    if (pct < 50) return "rare";
+    return "common";
+}
+
+function renderComparison(playerA, playerB) {
+    const avatarHtmlA = playerA.avatar 
+        ? `<img src="${playerA.avatar}" class="comp-avatar">` 
+        : `<div class="comp-avatar" style="display:flex;align-items:center;justify-content:center;color:#ff3333;"><i class="fas fa-user-circle" style="font-size:2.8em;"></i></div>`;
+        
+    const avatarHtmlB = playerB.avatar 
+        ? `<img src="${playerB.avatar}" class="comp-avatar">` 
+        : `<div class="comp-avatar" style="display:flex;align-items:center;justify-content:center;color:#00ffff;"><i class="fas fa-user-circle" style="font-size:2.8em;"></i></div>`;
+        
+    const bannerHtml = `
+    <div class="comparison-versus-banner">
+        <div class="comp-player-card player-a">
+            ${avatarHtmlA}
+            <h3 class="comp-player-name">${playerA.player}</h3>
+        </div>
+        <div class="comp-vs-badge">VS</div>
+        <div class="comp-player-card player-b">
+            ${avatarHtmlB}
+            <h3 class="comp-player-name">${playerB.player}</h3>
+        </div>
+    </div>
+    `;
+    
+    const bestWeaponA = playerA.topWeapon || "N/A";
+    const bestWeaponB = playerB.topWeapon || "N/A";
+    const bestMapA = playerA.bestMap || "Nenhum";
+    const bestMapB = playerB.bestMap || "Nenhum";
+
+    const bestWeaponRow = `
+    <div class="comp-stat-row">
+        <span class="comp-stat-val val-a">${bestWeaponA}</span>
+        <span class="comp-stat-label">Melhor Arma</span>
+        <span class="comp-stat-val val-b">${bestWeaponB}</span>
+    </div>
+    `;
+    const bestMapRow = `
+    <div class="comp-stat-row">
+        <span class="comp-stat-val val-a">${bestMapA}</span>
+        <span class="comp-stat-label">Melhor Mapa</span>
+        <span class="comp-stat-val val-b">${bestMapB}</span>
+    </div>
+    `;
+
+    const statsHtml = `
+    <div class="comparison-section">
+        <h4 class="comparison-section-title"><i class="fas fa-chart-bar"></i> Duelo de Estatísticas</h4>
+        <div class="comparison-stats-box">
+            ${getStatRowHtml("Kills", playerA.kills, playerB.kills, true)}
+            ${getStatRowHtml("Mortes", playerA.deaths, playerB.deaths, false)}
+            ${getStatRowHtml("K/D Ratio", playerA.kd !== undefined ? playerA.kd : "0.00", playerB.kd !== undefined ? playerB.kd : "0.00", true)}
+            ${getStatRowHtml("Kills/min", playerA.killsPerMin !== undefined ? playerA.killsPerMin : "0.00", playerB.killsPerMin !== undefined ? playerB.killsPerMin : "0.00", true)}
+            ${getStatRowHtml("Maior Seq.", playerA.maxStreak || 0, playerB.maxStreak || 0, true)}
+            ${getStatRowHtml("Headshot %", playerA.hsPercent !== undefined ? playerA.hsPercent : 0.0, playerB.hsPercent !== undefined ? playerB.hsPercent : 0.0, true)}
+            ${bestWeaponRow}
+            ${bestMapRow}
+        </div>
+    </div>
+    `;
+    
+    const svgHtml = document.querySelector(".body-heatmap-inner").innerHTML;
+    
+    const heatmapsHtml = `
+    <div class="comparison-section">
+        <h4 class="comparison-section-title"><i class="fas fa-crosshairs"></i> Duelo de Precisão</h4>
+        <div class="comparison-heatmaps-container">
+            <div class="comp-heatmap-wrapper player-a">
+                <span class="comp-heatmap-title">${playerA.player}</span>
+                <div id="compHeatmapA" class="comp-heatmap-svg-container">
+                    ${svgHtml}
+                </div>
+            </div>
+            <div class="comp-heatmap-wrapper player-b">
+                <span class="comp-heatmap-title">${playerB.player}</span>
+                <div id="compHeatmapB" class="comp-heatmap-svg-container">
+                    ${svgHtml}
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+    
+    let achievementsRowsHtml = "";
+    Object.keys(ACHIEVEMENTS_METADATA).forEach(id => {
+        const meta = ACHIEVEMENTS_METADATA[id];
+        const achA = playerA.achievements[id] || { unlocked: false, level: 0, roman: "", current: 0, target: 100, percent: 0.0 };
+        const achB = playerB.achievements[id] || { unlocked: false, level: 0, roman: "", current: 0, target: 100, percent: 0.0 };
+        
+        const rarityClassA = getRarityClass(achA);
+        const rarityClassB = getRarityClass(achB);
+        
+        const lvlTextA = achA.unlocked ? achA.roman : "-";
+        const lvlTextB = achB.unlocked ? achB.roman : "-";
+        
+        const progressPctA = achA.target > 0 ? Math.min(100, Math.round((achA.current / achA.target) * 100)) : 0;
+        const progressPctB = achB.target > 0 ? Math.min(100, Math.round((achB.current / achB.target) * 100)) : 0;
+        
+        let diffClass = "tie";
+        let diffText = "Empate";
+        
+        if (achA.level > achB.level) {
+            diffClass = "ahead-a";
+            diffText = `+${achA.level - achB.level} Nív`;
+        } else if (achB.level > achA.level) {
+            diffClass = "ahead-b";
+            diffText = `+${achB.level - achA.level} Nív`;
+        } else {
+            if (achA.unlocked && !achB.unlocked) {
+                diffClass = "ahead-a";
+                diffText = `Liberado`;
+            } else if (!achA.unlocked && achB.unlocked) {
+                diffClass = "ahead-b";
+                diffText = `Liberado`;
+            }
+        }
+        
+        achievementsRowsHtml += `
+        <div class="comp-ach-row">
+            <div class="comp-ach-player-side side-a">
+                <div class="comp-ach-status">
+                    <span class="comp-ach-badge ${rarityClassA}">${lvlTextA}</span>
+                    <span class="comp-ach-val-text">${achA.current}/${achA.target}</span>
+                </div>
+                <div class="comp-ach-bar-bg">
+                    <div class="comp-ach-bar-fill" style="width: ${progressPctA}%;"></div>
+                </div>
+            </div>
+            
+            <div class="comp-ach-center">
+                <div class="comp-ach-header">
+                    <i class="${meta.icon}"></i>
+                    <span class="comp-ach-name">${meta.name}</span>
+                </div>
+                <span class="comp-ach-diff ${diffClass}">${diffText}</span>
+            </div>
+            
+            <div class="comp-ach-player-side side-b">
+                <div class="comp-ach-status">
+                    <span class="comp-ach-badge ${rarityClassB}">${lvlTextB}</span>
+                    <span class="comp-ach-val-text">${achB.current}/${achB.target}</span>
+                </div>
+                <div class="comp-ach-bar-bg">
+                    <div class="comp-ach-bar-fill" style="width: ${progressPctB}%;"></div>
+                </div>
+            </div>
+        </div>
+        `;
+    });
+    
+    const achievementsSectionHtml = `
+    <div class="comparison-section">
+        <h4 class="comparison-section-title"><i class="fas fa-medal"></i> Duelo de Conquistas</h4>
+        <div class="comp-achievements-list">
+            ${achievementsRowsHtml}
+        </div>
+    </div>
+    `;
+
+    const comparisonLayout = document.getElementById("profileComparisonLayout");
+    comparisonLayout.innerHTML = `
+        ${bannerHtml}
+        ${statsHtml}
+        ${heatmapsHtml}
+        ${achievementsSectionHtml}
+    `;
+    comparisonLayout.style.display = "flex";
+    
+    colorMiniHeatmap(document.getElementById("compHeatmapA"), playerA.hitLocations);
+    colorMiniHeatmap(document.getElementById("compHeatmapB"), playerB.hitLocations);
+}
+
+function initCompareEvents() {
+    const compareBtn = document.getElementById("profileCompareBtn");
+    const selectEl = document.getElementById("comparePlayerSelect");
+    const closeBtn = document.getElementById("closeCompareBtn");
+    
+    if (compareBtn) {
+        compareBtn.onclick = async () => {
+            compareBtn.style.display = "none";
+            document.getElementById("compareSelectorContainer").style.display = "flex";
+            if (closeBtn) closeBtn.style.display = "inline-block";
+            
+            if (selectEl) {
+                selectEl.innerHTML = '<option value="">Selecionar Jogador...</option>';
+                try {
+                    const res = await fetch(`${API_URL}/kills?period=all`);
+                    const players = await res.json();
+                    
+                    const currentPlayer = activeProfileData ? activeProfileData.player : "";
+                    players.forEach(p => {
+                        if (p.player && p.player !== currentPlayer) {
+                            const opt = document.createElement("option");
+                            opt.value = p.player;
+                            opt.innerText = p.player;
+                            selectEl.appendChild(opt);
+                        }
+                    });
+                } catch (e) {
+                    console.error("Erro ao carregar jogadores", e);
+                }
+            }
+        };
+    }
+    
+    if (selectEl) {
+        selectEl.onchange = async () => {
+            const opponent = selectEl.value;
+            if (!opponent) {
+                const compLayout = document.getElementById("profileComparisonLayout");
+                const normalLayout = document.querySelector(".profile-body-layout");
+                if (compLayout) compLayout.style.display = "none";
+                if (normalLayout) normalLayout.style.display = "flex";
+                return;
+            }
+            
+            try {
+                const normalLayout = document.querySelector(".profile-body-layout");
+                if (normalLayout) normalLayout.style.display = "none";
+                
+                const res = await fetch(`${API_URL}/profile?player=${encodeURIComponent(opponent)}`);
+                const opponentData = await res.json();
+                
+                if (activeProfileData) {
+                    renderComparison(activeProfileData, opponentData);
+                }
+            } catch (e) {
+                console.error("Erro ao buscar oponente", e);
+            }
+        };
+    }
+    
+    if (closeBtn) {
+        closeBtn.onclick = () => {
+            resetComparisonMode();
+        };
+    }
+}
+
 // --- Profile Modal ---
 async function openProfile(playerName) {
     const modal = document.getElementById("profileModal");
     modal.style.display = "flex";
     document.getElementById("profileName").innerText = playerName;
+
+    // Reset comparison mode and disable button while loading
+    resetComparisonMode();
+    const compareBtn = document.getElementById("profileCompareBtn");
+    if (compareBtn) compareBtn.disabled = true;
 
     // Reset avatar display
     document.getElementById("profileAvatarIcon").style.display = "block";
@@ -1296,6 +1628,7 @@ async function openProfile(playerName) {
     try {
         const res = await fetch(`${API_URL}/profile?player=${encodeURIComponent(playerName)}`);
         const data = await res.json();
+        activeProfileData = data;
 
         if (data.avatar) {
             document.getElementById("profileAvatarIcon").style.display = "none";
@@ -1760,6 +2093,9 @@ async function openProfile(playerName) {
 
         // Render body heatmap
         renderBodyHeatmap(data.hitLocations || null, data.totalHits || 0);
+        
+        const compareBtn = document.getElementById("profileCompareBtn");
+        if (compareBtn) compareBtn.disabled = false;
 
     } catch (e) {
         console.error(e);
@@ -2275,3 +2611,6 @@ window.addEventListener("keydown", (e) => {
         });
     }
 });
+
+// Initialize comparison event listeners
+initCompareEvents();

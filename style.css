@@ -2263,3 +2263,393 @@ table.dataTable tbody td {
     margin-top: 8px;
     font-style: italic;
 }
+
+/* --- Comparison Mode Styles --- */
+
+.compare-select {
+    background: #1f2937;
+    border: 1px solid rgba(255, 51, 51, 0.4);
+    color: white;
+    border-radius: 6px;
+    padding: 6px 12px;
+    outline: none;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.compare-select:focus {
+    border-color: #ff3333;
+    box-shadow: 0 0 5px rgba(255, 51, 51, 0.5);
+}
+
+.profile-comparison-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    padding: 10px 0;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+/* Scrollbar para o container de comparação */
+.profile-comparison-layout::-webkit-scrollbar {
+    width: 6px;
+}
+.profile-comparison-layout::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.02);
+}
+.profile-comparison-layout::-webkit-scrollbar-thumb {
+    background: rgba(255,51,51,0.3);
+    border-radius: 3px;
+}
+.profile-comparison-layout::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,51,51,0.6);
+}
+
+/* Versus Banner */
+.comparison-versus-banner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 10px;
+}
+
+.comp-player-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.comp-player-card.player-a {
+    align-items: flex-end;
+    text-align: right;
+    flex-direction: row-reverse;
+}
+
+.comp-player-card.player-b {
+    align-items: flex-start;
+    text-align: left;
+    flex-direction: row;
+}
+
+.comp-avatar-container {
+    position: relative;
+}
+
+.comp-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #555;
+    background: #111;
+}
+
+.comp-player-card.player-a .comp-avatar {
+    border-color: #ff3333;
+    box-shadow: 0 0 10px rgba(255, 51, 51, 0.2);
+}
+
+.comp-player-card.player-b .comp-avatar {
+    border-color: #00ffff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+}
+
+.comp-player-name {
+    font-size: 1.3em;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+}
+
+.comp-vs-badge {
+    font-size: 1.5em;
+    font-weight: 900;
+    font-style: italic;
+    color: #ff3333;
+    text-shadow: 0 0 8px rgba(255, 51, 51, 0.6), 0 0 20px rgba(255, 51, 51, 0.3);
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid #ff3333;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+}
+
+/* Stats Comparison List */
+.comparison-section-title {
+    font-size: 1em;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #888;
+    margin: 0 0 15px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-left: 3px solid #ff3333;
+    padding-left: 10px;
+}
+
+.comparison-stats-box {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.comp-stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    border-bottom: 1px solid #1c1c1c;
+    transition: background-color 0.2s;
+}
+
+.comp-stat-row:last-child {
+    border-bottom: none;
+}
+
+.comp-stat-row:hover {
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.comp-stat-val {
+    flex: 1;
+    font-size: 1.1em;
+    font-weight: 500;
+    color: #aaa;
+}
+
+.comp-stat-val.val-a {
+    text-align: right;
+    padding-right: 20px;
+}
+
+.comp-stat-val.val-b {
+    text-align: left;
+    padding-left: 20px;
+}
+
+.comp-stat-label {
+    flex: 1.2;
+    text-align: center;
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #888;
+    background: #1a1a1a;
+    border-radius: 20px;
+    padding: 4px 10px;
+    border: 1px solid #2d2d2d;
+    max-width: 160px;
+    margin: 0 auto;
+}
+
+/* Winner indicators */
+.comp-stat-val.winner {
+    font-weight: 700;
+}
+.comp-stat-val.val-a.winner {
+    color: #2ea44f;
+    text-shadow: 0 0 8px rgba(46, 164, 79, 0.2);
+}
+.comp-stat-val.val-b.winner {
+    color: #00ffff;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
+}
+
+/* Dual Heatmaps */
+.comparison-heatmaps-container {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+}
+
+.comp-heatmap-wrapper {
+    flex: 1;
+    max-width: 200px;
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.comp-heatmap-title {
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #888;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+}
+
+.comp-heatmap-wrapper.player-a .comp-heatmap-title {
+    color: #ff3333;
+}
+.comp-heatmap-wrapper.player-b .comp-heatmap-title {
+    color: #00ffff;
+}
+
+.comp-heatmap-wrapper svg {
+    width: 100px;
+    height: 230px;
+}
+
+/* Achievements comparison rows */
+.comp-achievements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.comp-ach-row {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.01);
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 10px 15px;
+    gap: 15px;
+    transition: border-color 0.2s;
+}
+
+.comp-ach-row:hover {
+    border-color: #333;
+}
+
+.comp-ach-player-side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.comp-ach-player-side.side-a {
+    align-items: flex-end;
+}
+
+.comp-ach-player-side.side-b {
+    align-items: flex-start;
+}
+
+.comp-ach-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.comp-ach-player-side.side-a .comp-ach-status {
+    flex-direction: row;
+}
+
+.comp-ach-player-side.side-b .comp-ach-status {
+    flex-direction: row-reverse;
+}
+
+.comp-ach-badge {
+    font-size: 0.7em;
+    font-weight: 800;
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 24px;
+    text-align: center;
+}
+
+/* Badge colors matching rarities */
+.comp-ach-badge.common { border-color: #8b949e; color: #f0f6fc; }
+.comp-ach-badge.rare { border-color: #58a6ff; color: #58a6ff; box-shadow: 0 0 4px rgba(88,166,255,0.15); }
+.comp-ach-badge.epic { border-color: #bc8cff; color: #bc8cff; box-shadow: 0 0 4px rgba(188,140,255,0.15); }
+.comp-ach-badge.legendary { border-color: #ffaa00; color: #ffaa00; box-shadow: 0 0 5px rgba(255,170,0,0.2); }
+.comp-ach-badge.locked { border-color: #30363d; color: #484f58; background: #161b22; }
+
+.comp-ach-val-text {
+    font-size: 0.8em;
+    color: #777;
+}
+
+.comp-ach-bar-bg {
+    width: 100%;
+    max-width: 140px;
+    height: 4px;
+    background: #111;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.comp-ach-bar-fill {
+    height: 100%;
+    background: #444;
+    border-radius: 2px;
+    width: 0%;
+}
+
+.comp-ach-player-side.side-a .comp-ach-bar-fill { background: #ff3333; }
+.comp-ach-player-side.side-b .comp-ach-bar-fill { background: #00ffff; }
+
+.comp-ach-center {
+    flex: 1.2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+}
+
+.comp-ach-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.comp-ach-header i {
+    font-size: 1.1em;
+    color: #ffaa00;
+}
+
+.comp-ach-name {
+    font-size: 0.95em;
+    font-weight: 700;
+    color: #fff;
+}
+
+.comp-ach-diff {
+    font-size: 0.72em;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 10px;
+    letter-spacing: 0.5px;
+}
+
+.comp-ach-diff.ahead-a {
+    background: rgba(46, 164, 79, 0.12);
+    color: #2ea44f;
+    border: 1px solid rgba(46, 164, 79, 0.25);
+}
+
+.comp-ach-diff.ahead-b {
+    background: rgba(0, 255, 255, 0.1);
+    color: #00ffff;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.comp-ach-diff.tie {
+    background: rgba(255, 255, 255, 0.03);
+    color: #666;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
