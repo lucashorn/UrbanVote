@@ -2794,7 +2794,7 @@ async function handleAvatarUploadSubmit(imgData, originalImgData) {
 }
 
 window.addEventListener("click", (e) => {
-    if (e.target.classList.contains("modal")) {
+    if (e.target.classList.contains("modal") && e.target.id !== "minigamesModal") {
         e.target.style.display = "none";
         if (e.target.id === "cropModal" && avatarCropper) {
             avatarCropper.destroy();
@@ -2812,6 +2812,9 @@ window.addEventListener("keydown", (e) => {
                 avatarCropper.destroy();
                 avatarCropper = null;
                 document.getElementById("mgmtAvatarInput").value = "";
+            }
+            if (modal.id === "minigamesModal") {
+                stopAllMinigames();
             }
         });
     }
