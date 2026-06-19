@@ -4316,19 +4316,19 @@ function startGrenadeGame() {
     grenadeCtx = grenadeCanvas.getContext("2d");
     
     grenadeCanvas.removeEventListener("mousedown", handleGrenadeMouseDown);
-    grenadeCanvas.removeEventListener("mousemove", handleGrenadeMouseMove);
+    window.removeEventListener("mousemove", handleGrenadeMouseMove);
     window.removeEventListener("mouseup", handleGrenadeMouseUp);
     
     grenadeCanvas.removeEventListener("touchstart", handleGrenadeTouchStart);
-    grenadeCanvas.removeEventListener("touchmove", handleGrenadeTouchMove);
+    window.removeEventListener("touchmove", handleGrenadeTouchMove);
     window.removeEventListener("touchend", handleGrenadeTouchEnd);
     
     grenadeCanvas.addEventListener("mousedown", handleGrenadeMouseDown);
-    grenadeCanvas.addEventListener("mousemove", handleGrenadeMouseMove);
+    window.addEventListener("mousemove", handleGrenadeMouseMove);
     window.addEventListener("mouseup", handleGrenadeMouseUp);
     
     grenadeCanvas.addEventListener("touchstart", handleGrenadeTouchStart, { passive: true });
-    grenadeCanvas.addEventListener("touchmove", handleGrenadeTouchMove, { passive: true });
+    window.addEventListener("touchmove", handleGrenadeTouchMove, { passive: true });
     window.addEventListener("touchend", handleGrenadeTouchEnd, { passive: true });
     
     generateGrenadeLayout(1);
@@ -4379,6 +4379,9 @@ function handleGrenadeMouseDown(e) {
     grenadeDragging = true;
     grenadeDragStart = pos;
     grenadeDragCurrent = pos;
+    
+    // Hide overlay immediately when aiming starts
+    document.getElementById("grenadeInstructionOverlay").style.opacity = "0";
 }
 
 function handleGrenadeMouseMove(e) {
@@ -4414,6 +4417,9 @@ function handleGrenadeMouseUp(e) {
         grenadeTimer = 0;
         
         playPinPullSound();
+    } else {
+        // Bring back the message if the user didn't pull back far enough
+        document.getElementById("grenadeInstructionOverlay").style.opacity = "1";
     }
 }
 
@@ -4576,10 +4582,10 @@ function stopGrenadeGame(finished) {
     
     if (grenadeCanvas) {
         grenadeCanvas.removeEventListener("mousedown", handleGrenadeMouseDown);
-        grenadeCanvas.removeEventListener("mousemove", handleGrenadeMouseMove);
+        window.removeEventListener("mousemove", handleGrenadeMouseMove);
         window.removeEventListener("mouseup", handleGrenadeMouseUp);
         grenadeCanvas.removeEventListener("touchstart", handleGrenadeTouchStart);
-        grenadeCanvas.removeEventListener("touchmove", handleGrenadeTouchMove);
+        window.removeEventListener("touchmove", handleGrenadeTouchMove);
         window.removeEventListener("touchend", handleGrenadeTouchEnd);
     }
     
