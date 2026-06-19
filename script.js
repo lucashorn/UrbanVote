@@ -4246,6 +4246,7 @@ function playGrenadeExplosionSound() {
 
 // Game State Variables
 let grenadeGameRunning = false;
+let grenadeRoundTransitioning = false;
 let grenadeLaunchCount = 0;
 let grenadeScoreTotal = 0;
 let grenadeBestLaunchScore = 0;
@@ -4297,6 +4298,7 @@ function startGrenadeTrainerMenu() {
 function startGrenadeGame() {
     stopAllMinigames();
     grenadeGameRunning = true;
+    grenadeRoundTransitioning = false;
     grenadeLaunchCount = 1;
     grenadeScoreTotal = 0;
     grenadeBestLaunchScore = 0;
@@ -4377,7 +4379,7 @@ function getCanvasMousePos(canvas, e) {
 }
 
 function handleGrenadeMouseDown(e) {
-    if (!grenadeGameRunning || grenadeActive || explosionActive) return;
+    if (!grenadeGameRunning || grenadeActive || explosionActive || grenadeRoundTransitioning) return;
     const pos = getCanvasMousePos(grenadeCanvas, e);
     grenadeDragging = true;
     grenadeDragStart = pos;
@@ -4514,6 +4516,7 @@ function updateGrenadePhysics() {
 }
 
 function triggerGrenadeExplosion() {
+    grenadeRoundTransitioning = true;
     grenadeActive = false;
     explosionActive = true;
     explosionX = grenadeX;
@@ -4565,6 +4568,7 @@ function triggerGrenadeExplosion() {
         if (grenadeLaunchCount >= 5) {
             stopGrenadeGame(true);
         } else {
+            grenadeRoundTransitioning = false;
             grenadeLaunchCount++;
             document.getElementById("grenadeLaunchCount").innerText = `${grenadeLaunchCount} / 5`;
             generateGrenadeLayout(grenadeLaunchCount);
@@ -4575,6 +4579,7 @@ function triggerGrenadeExplosion() {
 
 function stopGrenadeGame(finished) {
     grenadeGameRunning = false;
+    grenadeRoundTransitioning = false;
     grenadeActive = false;
     explosionActive = false;
     
