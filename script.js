@@ -1685,6 +1685,7 @@ function initCompareEvents() {
             compareMeBtn.style.display = "none";
             if (closeBtn) closeBtn.style.display = "inline-block";
             
+            Swal.fire({ title: "Carregando comparação...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
                 const normalLayout = document.querySelector(".profile-body-layout");
                 if (normalLayout) normalLayout.style.display = "none";
@@ -1692,10 +1693,28 @@ function initCompareEvents() {
                 const res = await fetch(`${API_URL}/profile?player=${encodeURIComponent(myIdentifier)}`);
                 const opponentData = await res.json();
                 
+                // For unlinked users the DB may not have scores yet — patch from localStorage
+                if (!auth.player_name) {
+                    const aimScores = JSON.parse(localStorage.getItem("aim_trainer_highscores") || "{}");
+                    const localAim = Math.max(0, ...Object.values(aimScores).map(Number));
+                    const localReaction = parseInt(localStorage.getItem("reaction_highscore") || "0");
+                    const localSpray   = parseInt(localStorage.getItem("spray_highscore")    || "0");
+                    const localFof     = parseInt(localStorage.getItem("fof_highscore")      || "0");
+                    const localGrenade = parseInt(localStorage.getItem("grenade_highscore")  || "0");
+                    if (localAim     > (opponentData.aimHighscore     || 0)) opponentData.aimHighscore     = localAim;
+                    if (localReaction > (opponentData.reactionHighscore || 0)) opponentData.reactionHighscore = localReaction;
+                    if (localSpray   > (opponentData.sprayHighscore   || 0)) opponentData.sprayHighscore   = localSpray;
+                    if (localFof     > (opponentData.fofHighscore     || 0)) opponentData.fofHighscore     = localFof;
+                    if (localGrenade > (opponentData.grenadeHighscore || 0)) opponentData.grenadeHighscore = localGrenade;
+                }
+                
+                Swal.close();
                 if (activeProfileData) {
                     renderComparison(activeProfileData, opponentData);
                 }
             } catch (e) {
+                Swal.close();
+                showToast("error", "Erro ao comparar comigo.");
                 console.error("Erro ao comparar comigo", e);
             }
         };
@@ -1712,6 +1731,7 @@ function initCompareEvents() {
                 return;
             }
             
+            Swal.fire({ title: "Carregando comparação...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
             try {
                 const normalLayout = document.querySelector(".profile-body-layout");
                 if (normalLayout) normalLayout.style.display = "none";
@@ -1719,10 +1739,13 @@ function initCompareEvents() {
                 const res = await fetch(`${API_URL}/profile?player=${encodeURIComponent(opponent)}`);
                 const opponentData = await res.json();
                 
+                Swal.close();
                 if (activeProfileData) {
                     renderComparison(activeProfileData, opponentData);
                 }
             } catch (e) {
+                Swal.close();
+                showToast("error", "Erro ao buscar oponente.");
                 console.error("Erro ao buscar oponente", e);
             }
         };
@@ -1756,10 +1779,12 @@ async function openProfile(playerName) {
         achContainer.innerHTML = "";
     }
 
+    Swal.fire({ title: "Carregando perfil...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     try {
         const res = await fetch(`${API_URL}/profile?player=${encodeURIComponent(playerName)}`);
         const data = await res.json();
         activeProfileData = data;
+        Swal.close();
 
         const avatarImg = document.getElementById("profileAvatarImg");
         const avatarIcon = document.getElementById("profileAvatarIcon");
@@ -2245,6 +2270,7 @@ async function openProfile(playerName) {
         }
 
     } catch (e) {
+        Swal.close();
         console.error(e);
         document.getElementById("profileName").innerText = "Erro ao carregar";
     }

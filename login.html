@@ -265,6 +265,11 @@
             const username = document.getElementById("loginUsername").value.trim();
             const password = document.getElementById("loginPassword").value.trim();
 
+            const btn = e.target.querySelector("button[type='submit']");
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
+
             const savedProfile = JSON.parse(localStorage.getItem("urban_profile") || "null");
             const payload = { username, password };
             if (savedProfile && savedProfile.name && savedProfile.code) {
@@ -302,9 +307,13 @@
                     window.location.href = "index.html";
                 } else {
                     showToast("error", await res.text());
+                    btn.disabled = false;
+                    btn.innerText = originalText;
                 }
             } catch (err) {
                 showToast("error", "Erro ao se conectar ao servidor.");
+                btn.disabled = false;
+                btn.innerText = originalText;
             }
         }
 
@@ -318,6 +327,11 @@
                 showToast("warning", "As senhas n\u00e3o coincidem.");
                 return;
             }
+
+            const btn = e.target.querySelector("button[type='submit']");
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando conta...';
 
             const savedProfile = JSON.parse(localStorage.getItem("urban_profile") || "null");
             const payload = { username, password };
@@ -348,12 +362,18 @@
                         document.getElementById("registerUsername").value = "";
                         document.getElementById("registerPassword").value = "";
                         document.getElementById("registerPasswordConfirm").value = "";
+                        btn.disabled = false;
+                        btn.innerText = originalText;
                     }, 1500);
                 } else {
                     showToast("error", await res.text());
+                    btn.disabled = false;
+                    btn.innerText = originalText;
                 }
             } catch (err) {
                 showToast("error", "Erro ao se conectar ao servidor.");
+                btn.disabled = false;
+                btn.innerText = originalText;
             }
         }
     </script>
