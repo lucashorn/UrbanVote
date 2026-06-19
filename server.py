@@ -1119,6 +1119,8 @@ class VoteServer(SimpleHTTPRequestHandler):
                 with stats_lock:
                     stats_all = global_stats.get("all", {})
                     kills_map = stats_all.get("kills", {})
+                    deaths_map = stats_all.get("deaths", {})
+                    log_players = set(kills_map.keys()) | set(deaths_map.keys())
 
                 result = []
                 seen = set()
@@ -1142,6 +1144,22 @@ class VoteServer(SimpleHTTPRequestHandler):
                         "avatar": avatar_url
                     })
 
+                # Adiciona jogadores do log que nao estao cadastrados como usuarios
+                for lp in log_players:
+                    if not lp or lp in seen:
+                        continue
+                    seen.add(lp)
+
+                    avatar_url, _ = get_player_avatars(lp)
+
+                    result.append({
+                        "display": lp,
+                        "has_minigame": False,
+                        "has_kills": kills_map.get(lp, 0) > 0,
+                        "linked": True,
+                        "avatar": avatar_url
+                    })
+
                 result.sort(key=lambda x: (not x["has_kills"], not x["has_minigame"], x["display"].lower()))
 
                 self.send_response(200)
@@ -1162,18 +1180,6 @@ class VoteServer(SimpleHTTPRequestHandler):
             with stats_lock:
                 stats_to_use = global_stats.get(period, global_stats["all"])
                 players = set(stats_to_use["kills"]) | set(stats_to_use["deaths"])
-                
-                # Inclui jogadores com contas cadastradas mesmo que nao estejam nos logs de kills/deaths
-                try:
-                    conn = sqlite3.connect(DB_FILE)
-                    c = conn.cursor()
-                    c.execute("SELECT DISTINCT COALESCE(player_name, username) FROM users WHERE COALESCE(player_name, username) IS NOT NULL AND COALESCE(player_name, username) != ''")
-                    for row in c.fetchall():
-                        players.add(row[0])
-                    conn.close()
-                except Exception as e:
-                    print("Erro ao carregar jogadores cadastrados para comparacao:", e)
-                
                 result = []
                 for p in players:
                     k = stats_to_use["kills"].get(p, 0) if "kills" in stats_to_use else 0

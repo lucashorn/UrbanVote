@@ -1713,6 +1713,9 @@ function initCompareEvents() {
                     templateSelection: (data) => data.text || "Buscar jogador..."
                 });
                 
+                // Abre a lista automaticamente
+                $(selectEl).select2("open");
+                
                 // Wire change event via Select2
                 $(selectEl).off("change.compare").on("change.compare", async () => {
                     const opponent = $(selectEl).val();
