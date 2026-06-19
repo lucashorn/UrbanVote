@@ -1734,11 +1734,15 @@ async function openProfile(playerName) {
         const data = await res.json();
         activeProfileData = data;
 
-        if (data.avatar) {
-            document.getElementById("profileAvatarIcon").style.display = "none";
-            document.getElementById("profileAvatarImg").src = data.avatar;
-            document.getElementById("profileAvatarImg").dataset.original = data.avatar_original || data.avatar;
-            document.getElementById("profileAvatarImg").style.display = "block";
+        const avatarImg = document.getElementById("profileAvatarImg");
+        const avatarIcon = document.getElementById("profileAvatarIcon");
+        if (avatarImg) {
+            avatarImg.src = data.avatar || "img/default_avatar.png";
+            avatarImg.dataset.original = data.avatar_original || data.avatar || "img/default_avatar.png";
+            avatarImg.style.display = "block";
+        }
+        if (avatarIcon) {
+            avatarIcon.style.display = "none";
         }
 
         document.getElementById("profileKills").innerText = data.kills;
@@ -2728,6 +2732,24 @@ async function handleRenameCharacter() {
 
 function handleLogout() {
     localStorage.removeItem("urban_auth");
+    localStorage.removeItem("aim_trainer_highscores");
+    localStorage.removeItem("reaction_highscore");
+    localStorage.removeItem("spray_highscore");
+    localStorage.removeItem("fof_highscore");
+    localStorage.removeItem("grenade_highscore");
+    
+    // Reset minigame highscore display values
+    const aimHighScoreEl = document.getElementById("aimTrainerHighScore");
+    if (aimHighScoreEl) aimHighScoreEl.innerText = "0";
+    const reactionHighScoreEl = document.getElementById("reactionHighScore");
+    if (reactionHighScoreEl) reactionHighScoreEl.innerText = "Sem recorde";
+    const sprayHighScoreEl = document.getElementById("sprayHighScore");
+    if (sprayHighScoreEl) sprayHighScoreEl.innerText = "0%";
+    const fofHighScoreEl = document.getElementById("fofHighScore");
+    if (fofHighScoreEl) fofHighScoreEl.innerText = "0";
+    const grenadeHighScoreEl = document.getElementById("grenadeHighScore");
+    if (grenadeHighScoreEl) grenadeHighScoreEl.innerText = "0";
+
     checkSession();
     document.getElementById("accountMgmtModal").style.display = "none";
     alert("Sessão encerrada.");
@@ -2996,8 +3018,9 @@ function showMinigamesMenu() {
     document.getElementById("grenadeHighScore").innerText = localGrenade;
 
     const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
-    if (auth && auth.player_name) {
-        fetch(`${API_URL}/profile?player=${encodeURIComponent(auth.player_name)}`)
+    if (auth) {
+        const activeName = auth.player_name || auth.username;
+        fetch(`${API_URL}/profile?player=${encodeURIComponent(activeName)}`)
             .then(res => res.json())
             .then(data => {
                 if (data) {

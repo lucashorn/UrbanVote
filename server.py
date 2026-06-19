@@ -1330,11 +1330,11 @@ class VoteServer(SimpleHTTPRequestHandler):
                 try:
                     conn = sqlite3.connect(DB_FILE)
                     c = conn.cursor()
-                    c.execute("SELECT aim_highscore, reaction_highscore, spray_highscore, fof_highscore, grenade_highscore FROM users WHERE player_name = ?", (clean_name(player_name),))
+                    c.execute("SELECT aim_highscore, reaction_highscore, spray_highscore, fof_highscore, grenade_highscore FROM users WHERE LOWER(player_name) = LOWER(?)", (clean_name(player_name),))
                     res = c.fetchone()
                     if not res:
                         # Fallback for users who haven't linked a player name yet
-                        c.execute("SELECT aim_highscore, reaction_highscore, spray_highscore, fof_highscore, grenade_highscore FROM users WHERE username = ?", (clean_name(player_name),))
+                        c.execute("SELECT aim_highscore, reaction_highscore, spray_highscore, fof_highscore, grenade_highscore FROM users WHERE LOWER(username) = LOWER(?)", (clean_name(player_name),))
                         res = c.fetchone()
                     if res:
                         aim_highscore = res[0] or 0
