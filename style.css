@@ -2654,8 +2654,7 @@ table.dataTable tbody td {
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Premium Comparison controls styling */
-#profileCompareBtn {
+#profileCompareBtn, #profileCompareMeBtn {
     background: rgba(255, 255, 255, 0.05);
     color: #eee;
     border: 1px solid rgba(255, 255, 255, 0.15);
@@ -2664,13 +2663,13 @@ table.dataTable tbody td {
     font-size: 0.85em;
     font-weight: 600;
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 8px;
     transition: all 0.2s ease-in-out;
 }
 
-#profileCompareBtn:hover {
+#profileCompareBtn:hover, #profileCompareMeBtn:hover {
     background: rgba(255, 59, 48, 0.15);
     color: #ff3b30;
     border-color: rgba(255, 59, 48, 0.5);
@@ -2678,7 +2677,7 @@ table.dataTable tbody td {
     transform: translateY(-1px);
 }
 
-#profileCompareBtn:active {
+#profileCompareBtn:active, #profileCompareMeBtn:active {
     transform: translateY(0);
 }
 
