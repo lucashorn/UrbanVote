@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.dataTables.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
     <link rel="stylesheet" href="style.css?v=16">
 </head>
 
@@ -321,7 +322,7 @@
                     </button>
                     <div id="compareSelectorContainer" style="display: none; align-items: center; gap: 8px;">
                         <span style="font-size: 0.85em; color: #888;">com</span>
-                        <select id="comparePlayerSelect" class="compare-select">
+                        <select id="comparePlayerSelect" class="compare-select" style="width: 280px;" data-placeholder="Buscar jogador...">
                             <option value="">Selecionar Jogador...</option>
                         </select>
                         <button id="closeCompareBtn" title="Fechar comparação">
@@ -1045,6 +1046,7 @@
     <script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="script.js?v=16"></script>
 </body>
 

@@ -1102,6 +1102,60 @@ class VoteServer(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+
+        if parsed.path == "/players-all":
+            try:
+                conn = sqlite3.connect(DB_FILE)
+                c = conn.cursor()
+                c.execute("""
+                    SELECT username, player_name,
+                           aim_highscore, reaction_highscore, spray_highscore, fof_highscore, grenade_highscore
+                    FROM users
+                    WHERE username IS NOT NULL AND username != ''
+                """)
+                rows = c.fetchall()
+                conn.close()
+
+                with stats_lock:
+                    stats_all = global_stats.get("all", {})
+                    kills_map = stats_all.get("kills", {})
+
+                result = []
+                seen = set()
+                for row in rows:
+                    usr, player, aim, react, spray, fof, gren = row
+                    display = player if player else usr
+                    if not display or display in seen:
+                        continue
+                    seen.add(display)
+
+                    has_minigame = any([aim, react, spray, fof, gren])
+                    has_kills = kills_map.get(display, 0) > 0 or kills_map.get(usr, 0) > 0
+
+                    avatar_url, _ = get_player_avatars(display)
+
+                    result.append({
+                        "display": display,
+                        "has_minigame": has_minigame,
+                        "has_kills": has_kills,
+                        "linked": bool(player),
+                        "avatar": avatar_url
+                    })
+
+                result.sort(key=lambda x: (not x["has_kills"], not x["has_minigame"], x["display"].lower()))
+
+                self.send_response(200)
+                self.end_cors()
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(result).encode("utf-8"))
+            except Exception as e:
+                self.send_response(500)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(str(e).encode("utf-8"))
+            return
+
         if parsed.path == "/kills":
             period = parse_qs(parsed.query).get("period", ["all"])[0]
             
@@ -1904,24 +1958,27 @@ class VoteServer(SimpleHTTPRequestHandler):
                 session_token = data.get("session_token")
                 
                 authorized = False
-                cleaned_name = clean_name(name)
+                cleaned_name = clean_name(name) if name else ""
                 
                 if username and session_token:
                     cleaned_user = clean_name(username)
                     conn = sqlite3.connect(DB_FILE)
                     c = conn.cursor()
-                    c.execute("SELECT session_token, player_name FROM users WHERE username = ?", (cleaned_user,))
+                    c.execute("SELECT session_token, player_name FROM users WHERE LOWER(username) = LOWER(?)", (cleaned_user,))
                     res = c.fetchone()
                     conn.close()
                     
                     if res and res[0] == session_token:
-                        db_player = res[1]
-                        if db_player:
-                            if clean_name(db_player) == cleaned_name:
-                                authorized = True
-                        else:
-                            if cleaned_user == cleaned_name:
-                                authorized = True
+                        db_player = clean_name(res[1]) if res[1] else ""
+                        # Allow if name matches their linked character (case-insensitive)
+                        if db_player and db_player.lower() == cleaned_name.lower():
+                            authorized = True
+                        # Allow if name matches their username (unlinked account uploading to their own profile)
+                        elif cleaned_user.lower() == cleaned_name.lower():
+                            authorized = True
+                        # Allow if they have no linked character — any valid session can set their avatar
+                        elif not db_player:
+                            authorized = True
                 
                 if not authorized and code:
                     if verify_auth_code(name, code):

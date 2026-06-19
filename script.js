@@ -1338,7 +1338,13 @@ function resetComparisonMode() {
     if (normalLayout) normalLayout.style.display = "flex";
     
     const selectEl = document.getElementById("comparePlayerSelect");
-    if (selectEl) selectEl.value = "";
+    if (selectEl) {
+        if ($(selectEl).hasClass("select2-hidden-accessible")) {
+            $(selectEl).val(null).trigger("change");
+        } else {
+            selectEl.value = "";
+        }
+    }
 }
 
 function colorMiniHeatmap(container, hitLocations) {
@@ -1654,23 +1660,88 @@ function initCompareEvents() {
             if (closeBtn) closeBtn.style.display = "inline-block";
             
             if (selectEl) {
-                selectEl.innerHTML = '<option value="">Selecionar Jogador...</option>';
+                // Destroy previous Select2 instance if exists
+                if ($(selectEl).hasClass("select2-hidden-accessible")) {
+                    $(selectEl).select2("destroy");
+                }
+                selectEl.innerHTML = '<option value=""></option>';
+                
                 try {
-                    const res = await fetch(`${API_URL}/kills?period=all`);
+                    const res = await fetch(`${API_URL}/players-all`);
                     const players = await res.json();
                     
                     const currentPlayer = activeProfileData ? activeProfileData.player : "";
                     players.forEach(p => {
-                        if (p.player && p.player !== currentPlayer) {
-                            const opt = document.createElement("option");
-                            opt.value = p.player;
-                            opt.innerText = p.player;
-                            selectEl.appendChild(opt);
-                        }
+                        if (!p.display || p.display === currentPlayer) return;
+                        const opt = document.createElement("option");
+                        opt.value = p.display;
+                        opt.dataset.hasKills = p.has_kills ? "1" : "0";
+                        opt.dataset.hasMinigame = p.has_minigame ? "1" : "0";
+                        opt.dataset.linked = p.linked ? "1" : "0";
+                        opt.dataset.avatar = p.avatar || "";
+                        opt.innerText = p.display;
+                        selectEl.appendChild(opt);
                     });
                 } catch (e) {
                     console.error("Erro ao carregar jogadores", e);
                 }
+                
+                // Initialize Select2
+                $(selectEl).select2({
+                    placeholder: "Buscar jogador...",
+                    allowClear: true,
+                    width: "280px",
+                    dropdownParent: document.getElementById("compareSelectorContainer"),
+                    templateResult: (data) => {
+                        if (!data.id) return data.text;
+                        const el = data.element;
+                        const hasKills    = el && el.dataset.hasKills    === "1";
+                        const hasMinigame = el && el.dataset.hasMinigame === "1";
+                        const linked      = el && el.dataset.linked      === "1";
+                        const avatar      = el ? (el.dataset.avatar || "") : "";
+                        
+                        const img = avatar
+                            ? `<img src="${avatar}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;margin-right:6px;vertical-align:middle;">`
+                            : `<i class="fas fa-user-circle" style="margin-right:6px;color:#8b949e;"></i>`;
+                        const killIcon     = hasKills    ? `<i class="fas fa-skull" title="Tem kills no jogo" style="margin-left:4px;color:#ff4d4d;font-size:0.75em;"></i>` : "";
+                        const minigameIcon = hasMinigame ? `<i class="fas fa-gamepad" title="Tem records em minigames" style="margin-left:4px;color:#a855f7;font-size:0.75em;"></i>` : "";
+                        const siteTag      = !linked     ? `<span style="font-size:0.7em;color:#666;margin-left:6px;">[site]</span>` : "";
+                        
+                        const $el = $(`<span>${img}${data.text}${killIcon}${minigameIcon}${siteTag}</span>`);
+                        return $el;
+                    },
+                    templateSelection: (data) => data.text || "Buscar jogador..."
+                });
+                
+                // Wire change event via Select2
+                $(selectEl).off("change.compare").on("change.compare", async () => {
+                    const opponent = $(selectEl).val();
+                    if (!opponent) {
+                        const compLayout = document.getElementById("profileComparisonLayout");
+                        const normalLayout = document.querySelector(".profile-body-layout");
+                        if (compLayout) compLayout.style.display = "none";
+                        if (normalLayout) normalLayout.style.display = "flex";
+                        return;
+                    }
+                    
+                    Swal.fire({ title: "Carregando comparação...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                    try {
+                        const normalLayout = document.querySelector(".profile-body-layout");
+                        if (normalLayout) normalLayout.style.display = "none";
+                        
+                        const res = await fetch(`${API_URL}/profile?player=${encodeURIComponent(opponent)}`);
+                        const opponentData = await res.json();
+                        
+                        Swal.close();
+                        if (activeProfileData) {
+                            renderComparison(activeProfileData, opponentData);
+                        }
+                    } catch (e) {
+                        Swal.close();
+                        showToast("error", "Erro ao buscar oponente.");
+                        console.error("Erro ao buscar oponente", e);
+                    }
+                });
             }
         };
     }
@@ -1716,37 +1787,6 @@ function initCompareEvents() {
                 Swal.close();
                 showToast("error", "Erro ao comparar comigo.");
                 console.error("Erro ao comparar comigo", e);
-            }
-        };
-    }
-    
-    if (selectEl) {
-        selectEl.onchange = async () => {
-            const opponent = selectEl.value;
-            if (!opponent) {
-                const compLayout = document.getElementById("profileComparisonLayout");
-                const normalLayout = document.querySelector(".profile-body-layout");
-                if (compLayout) compLayout.style.display = "none";
-                if (normalLayout) normalLayout.style.display = "flex";
-                return;
-            }
-            
-            Swal.fire({ title: "Carregando comparação...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-            try {
-                const normalLayout = document.querySelector(".profile-body-layout");
-                if (normalLayout) normalLayout.style.display = "none";
-                
-                const res = await fetch(`${API_URL}/profile?player=${encodeURIComponent(opponent)}`);
-                const opponentData = await res.json();
-                
-                Swal.close();
-                if (activeProfileData) {
-                    renderComparison(activeProfileData, opponentData);
-                }
-            } catch (e) {
-                Swal.close();
-                showToast("error", "Erro ao buscar oponente.");
-                console.error("Erro ao buscar oponente", e);
             }
         };
     }
