@@ -2,6 +2,14 @@
 <html lang="pt-BR">
 
 <head>
+    <script>
+        (function() {
+            const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+            if (!auth || !auth.session_token) {
+                window.location.href = "login.html";
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Terroismo Urbanor - Map vote inverso</title>
@@ -14,7 +22,20 @@
 
 <body>
 
-    <header>
+    <header style="position: relative;">
+        <!-- Widget de Autenticação -->
+        <div id="authWidget" class="auth-widget">
+            <div id="authLoggedOut">
+                <button onclick="openAuthModal()" class="auth-btn"><i class="fas fa-sign-in-alt"></i> Entrar / Registrar</button>
+            </div>
+            <div id="authLoggedIn" style="display: none; align-items: center; justify-content: center; gap: 12px;">
+                <span class="auth-welcome">Olá, <strong id="loggedInUsername" style="color: #a855f7;"></strong></span>
+                <span id="linkedPlayerBadge" class="linked-player-badge" style="display: none;"></span>
+                <button onclick="openAccountMgmtModal()" class="auth-icon-btn" title="Gerenciar Conta"><i class="fas fa-user-cog"></i></button>
+                <button onclick="handleLogout()" class="auth-icon-btn" title="Sair"><i class="fas fa-sign-out-alt"></i></button>
+            </div>
+        </div>
+
         <img src="img/logo.png" alt="Urban Terror" class="site-logo">
         <h1>Votação de Mapas</h1>
 
@@ -46,6 +67,9 @@
     </header>
 
     <div class="floating-tools">
+        <button id="minigamesBtn" title="Minigames">
+            <i class="fas fa-gamepad"></i>
+        </button>
         <button id="myProfileBtn" title="Meu Perfil">
             <i class="fas fa-user-cog"></i>
         </button>
@@ -60,42 +84,57 @@
         </button>
     </div>
 
-    <!-- Modal de Reivindicar Perfil -->
-    <div id="claimModal" class="modal">
-        <div class="modal-content profile-modal" style="max-width: 400px;">
-            <span class="close" id="claimClose">&times;</span>
-            <h2><i class="fas fa-id-card"></i> Meu Perfil</h2>
-            <p style="font-size: 0.9em; color: #aaa; margin-bottom: 20px;">
-                Digite <strong>!auth</strong> no chat do jogo para receber seu código.
-            </p>
 
-            <div id="claimForm">
-                <div class="admin-row" style="flex-direction: column;">
-                    <input type="text" id="claimName" placeholder="Seu Nick no Jogo">
-                    <input type="text" id="claimCode" placeholder="Código (ex: 1234)">
-                    <button onclick="handleClaim()"
-                        style="background:#ffaa00; color:#000; margin-top:10px; width:100%">Entrar</button>
+    <!-- Modal de Gerenciamento de Conta -->
+    <div id="accountMgmtModal" class="modal">
+        <div class="modal-content compact-modal" style="max-width: 450px; border-color: #a855f7;">
+            <span class="close" id="accountMgmtClose">&times;</span>
+            <h2 style="color: #a855f7; margin-bottom: 20px;"><i class="fas fa-user-cog"></i> Minha Conta</h2>
+            
+            <div id="accountStatusArea" style="margin-bottom: 20px; padding: 15px; background: #161b22; border: 1px solid #333; border-radius: 8px;">
+                <p style="margin: 0; font-size: 0.95em;">Usuário: <strong id="mgmtUsername" style="color: #a855f7;"></strong></p>
+                <div id="mgmtLinkedPlayerSection" style="margin-top: 10px;">
+                    <!-- Preenchido via JS -->
                 </div>
             </div>
 
-            <div id="uploadForm" style="display: none;">
-                <p style="color: #00ff99;">✓ Autenticado como <strong id="authenticatedName"></strong></p>
-                <div class="profile-card" style="margin: 15px 0;">
-                    <h3>Trocar Avatar</h3>
-                    <input type="file" id="avatarInput" accept="image/*" style="display: none;">
-                    <button onclick="document.getElementById('avatarInput').click()"
-                        style="background:#444; border:1px solid #666; padding:10px; margin-top:10px; width:100%">
-                        <i class="fas fa-upload"></i> Selecionar Imagem
-                    </button>
-                    <div id="uploadPreview" style="margin-top: 10px; display: none;">
-                        <img id="previewImg" onclick="openAvatarZoom(this.dataset.original || this.src)"
-                            style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ffaa00; cursor: pointer;">
-                        <button onclick="handleUpload()"
-                            style="background:#00ff99; color:#000; margin-top:10px; width:100%">Salvar Foto</button>
+            <!-- Área de Ações do Personagem Vinculado (Avatar, Troca de Nome) -->
+            <div id="mgmtLinkedActions" style="display: none;">
+                <!-- Trocar Avatar -->
+                <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #333;">
+                    <h3 style="color: #eee; font-size: 1.1em; margin: 0 0 10px 0;"><i class="fas fa-image"></i> Foto de Perfil</h3>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <img id="mgmtAvatarPreview" src="img/default_avatar.png" style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid #a855f7; object-fit: cover;">
+                        <div>
+                            <input type="file" id="mgmtAvatarInput" accept="image/*" style="display: none;">
+                            <button onclick="document.getElementById('mgmtAvatarInput').click()" class="setup-toggle-btn active" style="padding: 8px 12px; font-size: 0.85em;">Selecionar Nova Foto</button>
+                        </div>
                     </div>
                 </div>
-                <button onclick="logoutClaim()"
-                    style="background:transparent; color:#888; border:none; cursor:pointer; font-size:0.8em;">Sair</button>
+
+                <!-- Alterar Nome do Personagem -->
+                <div>
+                    <h3 style="color: #eee; font-size: 1.1em; margin: 0 0 10px 0;"><i class="fas fa-user-edit"></i> Mudar Nome do Personagem</h3>
+                    <p style="font-size: 0.8em; color: #888; margin-bottom: 10px;">Se você trocou de nick no jogo, digite seu novo nick e o novo código de autenticação gerado via <strong>!auth</strong> para atualizar seu cadastro sem perder o ranking.</p>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <input type="text" id="mgmtNewNick" placeholder="Novo Nick no Jogo" style="padding: 8px; border-radius: 6px; background: #161b22; border: 1px solid #333; color: white;">
+                        <input type="text" id="mgmtNewNickCode" placeholder="Código de Autenticação (!auth)" style="padding: 8px; border-radius: 6px; background: #161b22; border: 1px solid #333; color: white;">
+                        <button onclick="handleRenameCharacter()" style="background: #00ff99; color: black; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">ATUALIZAR NOME</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Área de Vínculo (se não estiver vinculado) -->
+            <div id="mgmtUnlinkedActions" style="display: none;">
+                <h3 style="color: #ffaa00; font-size: 1.1em; margin: 0 0 10px 0;"><i class="fas fa-link"></i> Vincular Personagem</h3>
+                <p style="font-size: 0.85em; color: #aaa; margin-bottom: 15px;">Para trocar a foto de perfil ou gerenciar seu ranking, você precisa vincular seu personagem do jogo.</p>
+                <p style="font-size: 0.8em; color: #888; margin-bottom: 10px;">1. Entre no jogo e digite <strong>!auth</strong> no chat para receber seu código.<br>2. Insira o nick e o código recebido abaixo:</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <input type="text" id="mgmtLinkNick" placeholder="Seu Nick no Jogo" style="padding: 8px; border-radius: 6px; background: #161b22; border: 1px solid #333; color: white;">
+                    <input type="text" id="mgmtLinkCode" placeholder="Código (ex: 1234)" style="padding: 8px; border-radius: 6px; background: #161b22; border: 1px solid #333; color: white;">
+                    <button onclick="handleLinkCharacter()" style="background: #a855f7; color: white; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">VINCULAR AGORA</button>
+                </div>
             </div>
         </div>
     </div>
@@ -476,6 +515,150 @@
                 style="max-width: 90vw; max-height: 80vh; border: 3px solid #00ff99; border-radius: 12px; box-shadow: 0 0 30px rgba(0, 255, 153, 0.4); object-fit: contain;">
             <p style="text-align: center; color: #00ff99; margin-top: 15px; font-weight: bold; font-size: 1.2em;">Foto
                 de Perfil</p>
+        </div>
+    </div>
+
+    <!-- Modal de Minigames -->
+    <div id="minigamesModal" class="modal">
+        <div class="modal-content compact-modal" style="max-width: 650px; border-color: #a855f7;">
+            <span class="close" id="minigamesClose">&times;</span>
+
+            <!-- Menu de Minigames -->
+            <div id="minigamesMenu">
+                <h2
+                    style="color: #a855f7; text-shadow: 0 0 10px rgba(168, 85, 247, 0.4); text-align: center; margin-bottom: 20px;">
+                    <i class="fas fa-gamepad"></i> Minigames
+                </h2>
+                <div class="minigames-grid-menu">
+                    <div class="minigame-card" onclick="startAimTrainerMenu()">
+                        <i class="fas fa-crosshairs"
+                            style="font-size: 2.5em; color: #ff3333; margin-bottom: 12px; display: block; text-align: center;"></i>
+                        <h3 style="color: #eee; margin: 0 0 8px 0; text-align: center;">Treino de Mira</h3>
+                        <p style="color: #aaa; font-size: 0.85em; line-height: 1.4; margin: 0 0 12px 0;">Treine seus
+                            reflexos, precisão e agilidade clicando em alvos em movimento.</p>
+                        <div
+                            style="background: rgba(168, 85, 247, 0.05); border: 1px dashed #a855f7; border-radius: 6px; padding: 8px; text-align: center; font-size: 0.85em; color: #d8b4fe;">
+                            Recorde Máximo: <span id="aimTrainerHighScore">0</span> pts
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tela de Jogo do Aim Trainer -->
+            <div id="aimTrainerGame" style="display: none;">
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+                    <button onclick="showMinigamesMenu()"
+                        style="background: transparent; border: 1px solid #555; color: #ccc; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em;">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                    <h3 style="margin: 0; color: #ff3333; text-shadow: 0 0 5px rgba(255, 51, 51, 0.3);"><i
+                            class="fas fa-crosshairs"></i> Treino de Mira</h3>
+                    <div style="font-size: 0.85em; color: #aaa;">
+                        Recorde: <span id="aimTrainerGameHighScore" style="color: #ffaa00; font-weight: bold;">0</span>
+                    </div>
+                </div>
+
+                <!-- Tela de Setup (Configuração) -->
+                <div id="aimTrainerSetup">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; font-size: 0.9em; color: #ccc; margin-bottom: 8px;">Duração da
+                            Partida:</label>
+                        <div class="setup-toggle-grid" id="aimDurationToggle">
+                            <button class="setup-toggle-btn active" data-val="15">15 segundos</button>
+                            <button class="setup-toggle-btn" data-val="30">30 segundos</button>
+                            <button class="setup-toggle-btn" data-val="60">60 segundos</button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 25px;">
+                        <label style="display: block; font-size: 0.9em; color: #ccc; margin-bottom: 8px;">Movimento dos
+                            Alvos:</label>
+                        <div class="setup-toggle-grid" id="aimMovementToggle">
+                            <button class="setup-toggle-btn active" data-val="static">Estático</button>
+                            <button class="setup-toggle-btn" data-val="horizontal">Horizontal</button>
+                            <button class="setup-toggle-btn" data-val="vertical">Vertical</button>
+                            <button class="setup-toggle-btn" data-val="mixed">Misto</button>
+                        </div>
+                    </div>
+
+                    <button id="startAimGameBtn"
+                        style="background: #a855f7; color: white; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 1.1em; cursor: pointer; text-shadow: 0 1px 3px rgba(0,0,0,0.5); box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3); transition: background 0.2s;">
+                        INICIAR TREINO
+                    </button>
+                </div>
+
+                <!-- Painel da Partida Ativa -->
+                <div id="aimTrainerPlayground" style="display: none;">
+                    <div class="aim-stats-header">
+                        <div class="aim-stat-box">
+                            <span class="aim-stat-label">Pontos</span>
+                            <span id="gameScore" class="aim-stat-value" style="color: #00ff99;">0</span>
+                        </div>
+                        <div class="aim-stat-box">
+                            <span class="aim-stat-label">Tempo</span>
+                            <span id="gameTimer" class="aim-stat-value" style="color: #ffaa00;">15s</span>
+                        </div>
+                        <div class="aim-stat-box">
+                            <span class="aim-stat-label">Precisão</span>
+                            <span id="gameAccuracy" class="aim-stat-value" style="color: #00ffff;">100%</span>
+                        </div>
+                    </div>
+
+                    <div id="aimTargetArea" class="aim-target-area">
+                        <!-- Alvos e animações de hit serão criados via JS -->
+                    </div>
+                </div>
+
+                <!-- Tela de Fim de Jogo -->
+                <div id="aimTrainerGameOver" style="display: none; text-align: center;">
+                    <div
+                        style="font-size: 3em; color: #ffaa00; margin-bottom: 10px; text-shadow: 0 0 15px rgba(255, 170, 0, 0.4);">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h3 style="color: white; margin: 0 0 5px 0; font-size: 1.5em;">Treino Concluído!</h3>
+                    <p style="color: #888; font-size: 0.9em; margin: 0 0 20px 0;">Veja seu desempenho:</p>
+
+                    <div class="aim-results-grid">
+                        <div class="aim-result-card">
+                            <span class="aim-result-label">Pontuação Final</span>
+                            <span class="aim-result-value" id="endScore"
+                                style="color: #00ff99; font-size: 1.8em;">0</span>
+                        </div>
+                        <div class="aim-result-card">
+                            <span class="aim-result-label">Precisão</span>
+                            <span class="aim-result-value" id="endAccuracy" style="color: #00ffff;">0%</span>
+                        </div>
+                        <div class="aim-result-card">
+                            <span class="aim-result-label">Alvos Atingidos</span>
+                            <span class="aim-result-value" id="endHits" style="color: #eee;">0</span>
+                        </div>
+                        <div class="aim-result-card">
+                            <span class="aim-result-label">Cliques Totais</span>
+                            <span class="aim-result-value" id="endClicks" style="color: #eee;">0</span>
+                        </div>
+                        <div class="aim-result-card" style="grid-column: span 2;">
+                            <span class="aim-result-label">Velocidade (Acertos / Segundo)</span>
+                            <span class="aim-result-value" id="endHps" style="color: #ffaa00;">0.00 HPS</span>
+                        </div>
+                    </div>
+
+                    <div id="newHighScoreFlash" class="new-highscore-flash-msg" style="display: none;">
+                        ★ NOVO RECORDE PESSOAL! ★
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 25px;">
+                        <button onclick="restartAimTrainer()"
+                            style="flex: 1; background: #a855f7; color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2); border: none;">
+                            Jogar Novamente
+                        </button>
+                        <button onclick="showMinigamesMenu()"
+                            style="flex: 1; background: #333; border: 1px solid #444; color: #ccc; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none;">
+                            Menu Principal
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

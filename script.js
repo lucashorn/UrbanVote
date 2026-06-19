@@ -1425,6 +1425,15 @@ function renderComparison(playerA, playerB) {
         </div>
     </div>
     `;
+
+    const minigamesHtml = `
+    <div class="comparison-section">
+        <h4 class="comparison-section-title"><i class="fas fa-gamepad"></i> Duelo de Minigames</h4>
+        <div class="comparison-stats-box">
+            ${getStatRowHtml("Treino de Mira", `${playerA.aimHighscore || 0} pts`, `${playerB.aimHighscore || 0} pts`, true)}
+        </div>
+    </div>
+    `;
     
     const baseSvg = document.querySelector(".body-heatmap-inner").innerHTML;
     
@@ -1565,6 +1574,7 @@ function renderComparison(playerA, playerB) {
     comparisonLayout.innerHTML = `
         ${bannerHtml}
         ${statsHtml}
+        ${minigamesHtml}
         ${heatmapsHtml}
         ${achievementsSectionHtml}
     `;
@@ -2448,33 +2458,144 @@ setInterval(() => {
         fetchKills(activeKillTab);
     }
 }, 15000);
-// --- Claim Profile & Avatar Upload ---
+// --- Auth System & Account Management ---
 document.getElementById("myProfileBtn").onclick = () => {
-    document.getElementById("claimModal").style.display = "flex";
-    const saved = JSON.parse(localStorage.getItem("urban_profile") || "null");
-    if (saved) {
-        showUploadForm(saved.name, saved.code);
+    openAccountMgmtModal();
+};
+
+document.getElementById("accountMgmtClose").onclick = () => {
+    document.getElementById("accountMgmtModal").style.display = "none";
+};
+
+function checkSession() {
+    const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+    const loggedOutDiv = document.getElementById("authLoggedOut");
+    const loggedInDiv = document.getElementById("authLoggedIn");
+    
+    if (auth && auth.session_token) {
+        if (loggedOutDiv) loggedOutDiv.style.display = "none";
+        if (loggedInDiv) loggedInDiv.style.display = "flex";
+        
+        const userEl = document.getElementById("loggedInUsername");
+        if (userEl) userEl.innerText = auth.username;
+        
+        const badge = document.getElementById("linkedPlayerBadge");
+        if (badge) {
+            if (auth.player_name) {
+                badge.style.display = "inline-flex";
+                badge.innerHTML = `<i class="fas fa-gamepad"></i> ${auth.player_name}`;
+            } else {
+                badge.style.display = "none";
+                
+                // If not linked yet, check for old session urban_profile in localStorage to auto-link
+                const savedProfile = JSON.parse(localStorage.getItem("urban_profile") || "null");
+                if (savedProfile && savedProfile.name && savedProfile.code) {
+                    console.log("[INFO] Autolinking player on checkSession:", savedProfile.name);
+                    fetch(`${API_URL}/link-player`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            username: auth.username,
+                            session_token: auth.session_token,
+                            player_name: savedProfile.name,
+                            auth_code: savedProfile.code
+                        })
+                    })
+                    .then(res => {
+                        if (res.ok) return res.json();
+                    })
+                    .then(data => {
+                        if (data && data.player_name) {
+                            auth.player_name = data.player_name;
+                            localStorage.setItem("urban_auth", JSON.stringify(auth));
+                            localStorage.removeItem("urban_profile");
+                            location.reload();
+                        }
+                    })
+                    .catch(err => console.error("Erro no auto-vinculo:", err));
+                }
+            }
+        }
+    } else {
+        if (loggedOutDiv) loggedOutDiv.style.display = "flex";
+        if (loggedInDiv) loggedInDiv.style.display = "none";
+        window.location.href = "login.html";
     }
-};
+}
 
-document.getElementById("claimClose").onclick = () => {
-    document.getElementById("claimModal").style.display = "none";
-};
+window.openAccountMgmtModal = openAccountMgmtModal;
+window.handleLinkCharacter = handleLinkCharacter;
+window.handleRenameCharacter = handleRenameCharacter;
+window.handleLogout = handleLogout;
 
-async function handleClaim() {
-    const name = document.getElementById("claimName").value.trim();
-    const code = document.getElementById("claimCode").value.trim();
-    if (!name || !code) return alert("Preencha todos os campos.");
+function openAccountMgmtModal() {
+    const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+    if (!auth) return;
+    
+    document.getElementById("accountMgmtModal").style.display = "flex";
+    document.getElementById("mgmtUsername").innerText = auth.username;
+    
+    const linkedPlayerSection = document.getElementById("mgmtLinkedPlayerSection");
+    const linkedActions = document.getElementById("mgmtLinkedActions");
+    const unlinkedActions = document.getElementById("mgmtUnlinkedActions");
+    
+    if (auth.player_name) {
+        linkedPlayerSection.innerHTML = `<p style="margin: 0; color: #00ff99; font-size: 0.9em;"><i class="fas fa-link"></i> Vinculado a: <strong>${auth.player_name}</strong></p>`;
+        linkedActions.style.display = "block";
+        unlinkedActions.style.display = "none";
+        
+        fetch(`${API_URL}/profile?player=${encodeURIComponent(auth.player_name)}`)
+            .then(res => res.json())
+            .then(data => {
+                const preview = document.getElementById("mgmtAvatarPreview");
+                if (data.avatar) {
+                    preview.src = data.avatar;
+                } else {
+                    preview.src = "img/default_avatar.png";
+                }
+            })
+            .catch(() => {
+                document.getElementById("mgmtAvatarPreview").src = "img/default_avatar.png";
+            });
+    } else {
+        linkedPlayerSection.innerHTML = `<p style="margin: 0; color: #ffaa00; font-size: 0.9em;"><i class="fas fa-exclamation-triangle"></i> Nenhum personagem vinculado</p>`;
+        linkedActions.style.display = "none";
+        unlinkedActions.style.display = "block";
+    }
+}
 
+async function handleLinkCharacter() {
+    const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+    if (!auth) return;
+    
+    const playerName = document.getElementById("mgmtLinkNick").value.trim();
+    const code = document.getElementById("mgmtLinkCode").value.trim();
+    
+    if (!playerName || !code) return alert("Preencha o nick e o código.");
+    
     try {
-        const res = await fetch(`${API_URL}/claim-profile`, {
+        const res = await fetch(`${API_URL}/link-player`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, code })
+            body: JSON.stringify({
+                username: auth.username,
+                session_token: auth.session_token,
+                player_name: playerName,
+                auth_code: code
+            })
         });
+        
         if (res.ok) {
-            localStorage.setItem("urban_profile", JSON.stringify({ name, code }));
-            showUploadForm(name, code);
+            const data = await res.json();
+            auth.player_name = data.player_name;
+            localStorage.setItem("urban_auth", JSON.stringify(auth));
+            
+            document.getElementById("mgmtLinkNick").value = "";
+            document.getElementById("mgmtLinkCode").value = "";
+            
+            checkSession();
+            openAccountMgmtModal();
+            alert("Personagem vinculado com sucesso!");
         } else {
             alert(await res.text());
         }
@@ -2483,41 +2604,74 @@ async function handleClaim() {
     }
 }
 
-function showUploadForm(name, code) {
-    document.getElementById("claimForm").style.display = "none";
-    document.getElementById("uploadForm").style.display = "block";
-    document.getElementById("authenticatedName").innerText = name;
+async function handleRenameCharacter() {
+    const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+    if (!auth) return;
+    
+    const newName = document.getElementById("mgmtNewNick").value.trim();
+    const code = document.getElementById("mgmtNewNickCode").value.trim();
+    
+    if (!newName || !code) return alert("Preencha o novo nick e o novo código (!auth).");
+    
+    try {
+        const res = await fetch(`${API_URL}/rename-player`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                username: auth.username,
+                session_token: auth.session_token,
+                new_player_name: newName,
+                auth_code: code
+            })
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            auth.player_name = data.player_name;
+            localStorage.setItem("urban_auth", JSON.stringify(auth));
+            
+            document.getElementById("mgmtNewNick").value = "";
+            document.getElementById("mgmtNewNickCode").value = "";
+            
+            checkSession();
+            openAccountMgmtModal();
+            alert("Personagem renomeado e histórico migrado com sucesso!");
+            location.reload();
+        } else {
+            alert(await res.text());
+        }
+    } catch (e) {
+        alert("Erro na conexão.");
+    }
 }
 
-function logoutClaim() {
-    localStorage.removeItem("urban_profile");
-    document.getElementById("claimForm").style.display = "block";
-    document.getElementById("uploadForm").style.display = "none";
+function handleLogout() {
+    localStorage.removeItem("urban_auth");
+    checkSession();
+    document.getElementById("accountMgmtModal").style.display = "none";
+    alert("Sessão encerrada.");
 }
 
 let avatarCropper = null;
 let cropperMinZoom = 0;
 let cropperMaxZoom = 0;
 
-document.getElementById("avatarInput").onchange = (e) => {
+document.getElementById("mgmtAvatarInput").onchange = (e) => {
     const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = (ev) => {
             const cropImage = document.getElementById("cropImage");
             cropImage.src = ev.target.result;
-            document.getElementById("previewImg").dataset.original = ev.target.result;
+            document.getElementById("mgmtAvatarPreview").dataset.original = ev.target.result;
 
-            // Show crop modal
             document.getElementById("cropModal").style.display = "flex";
 
-            // Destroy existing cropper if any
             if (avatarCropper) {
                 avatarCropper.destroy();
                 avatarCropper = null;
             }
 
-            // Initialize Cropper.js after modal displays
             setTimeout(() => {
                 avatarCropper = new Cropper(cropImage, {
                     aspectRatio: 1,
@@ -2551,7 +2705,6 @@ document.getElementById("avatarInput").onchange = (e) => {
     }
 };
 
-// Bind Zoom Controls
 document.getElementById("zoomInBtn").onclick = () => {
     if (avatarCropper) avatarCropper.zoom(0.1);
 };
@@ -2574,7 +2727,7 @@ document.getElementById("cropClose").onclick = () => {
         avatarCropper.destroy();
         avatarCropper = null;
     }
-    document.getElementById("avatarInput").value = "";
+    document.getElementById("mgmtAvatarInput").value = "";
 };
 
 document.getElementById("cropConfirmBtn").onclick = () => {
@@ -2585,35 +2738,34 @@ document.getElementById("cropConfirmBtn").onclick = () => {
         });
 
         const croppedDataUrl = canvas.toDataURL("image/jpeg", 0.9);
-        document.getElementById("previewImg").src = croppedDataUrl;
-        document.getElementById("uploadPreview").style.display = "block";
-
-        // Hide modal and cleanup
+        document.getElementById("mgmtAvatarPreview").src = croppedDataUrl;
+        
         document.getElementById("cropModal").style.display = "none";
         avatarCropper.destroy();
         avatarCropper = null;
+        
+        handleAvatarUploadSubmit(croppedDataUrl, document.getElementById("mgmtAvatarPreview").dataset.original);
     }
 };
 
-async function handleUpload() {
-    const saved = JSON.parse(localStorage.getItem("urban_profile"));
-    const imgData = document.getElementById("previewImg").src;
-    const originalImgData = document.getElementById("previewImg").dataset.original;
-    if (!saved || !imgData) return;
-
+async function handleAvatarUploadSubmit(imgData, originalImgData) {
+    const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+    if (!auth || !auth.player_name) return;
+    
     try {
         const res = await fetch(`${API_URL}/upload-avatar`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                name: saved.name,
-                code: saved.code,
+                name: auth.player_name,
+                username: auth.username,
+                session_token: auth.session_token,
                 image: imgData,
                 originalImage: originalImgData
             })
         });
         if (res.ok) {
-            alert("Foto salva com sucesso!");
+            alert("Foto de perfil atualizada!");
             location.reload();
         } else {
             alert(await res.text());
@@ -2623,15 +2775,13 @@ async function handleUpload() {
     }
 }
 
-// Close modals on clicking outside the content area or pressing Escape
 window.addEventListener("click", (e) => {
     if (e.target.classList.contains("modal")) {
         e.target.style.display = "none";
-        // Specific cleanup for crop modal if closed this way
         if (e.target.id === "cropModal" && avatarCropper) {
             avatarCropper.destroy();
             avatarCropper = null;
-            document.getElementById("avatarInput").value = "";
+            document.getElementById("mgmtAvatarInput").value = "";
         }
     }
 });
@@ -2643,7 +2793,7 @@ window.addEventListener("keydown", (e) => {
             if (modal.id === "cropModal" && avatarCropper) {
                 avatarCropper.destroy();
                 avatarCropper = null;
-                document.getElementById("avatarInput").value = "";
+                document.getElementById("mgmtAvatarInput").value = "";
             }
         });
     }
@@ -2651,3 +2801,460 @@ window.addEventListener("keydown", (e) => {
 
 // Initialize comparison event listeners
 initCompareEvents();
+
+// ── Minigames Logic (Aim Trainer) ──
+
+let audioCtx = null;
+function getAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return audioCtx;
+}
+
+function playHitSound() {
+    try {
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.08);
+    } catch (e) {
+        console.error("Erro ao tocar som de hit:", e);
+    }
+}
+
+function playMissSound() {
+    try {
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(150, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.12);
+    } catch (e) {
+        console.error("Erro ao tocar som de miss:", e);
+    }
+}
+
+let aimGameRunning = false;
+let aimScore = 0;
+let aimHits = 0;
+let aimClicks = 0;
+let aimTimeLimit = 15;
+let aimTimerValue = 15;
+let aimMovementType = 'static';
+let aimGameTimerId = null;
+let aimSpawnTimerId = null;
+let aimAnimationId = null;
+let aimTargets = [];
+let nextTargetId = 1;
+let lastFrameTime = 0;
+
+document.getElementById("minigamesBtn").onclick = () => {
+    // Close other panels
+    document.getElementById("killRankingPanel").classList.remove("open");
+    document.getElementById("historyPanel").classList.remove("open");
+    const allMatchesBtn = document.getElementById("openAllMatchesBtn");
+    if (allMatchesBtn) allMatchesBtn.style.display = "none";
+    
+    document.getElementById("minigamesModal").style.display = "flex";
+    showMinigamesMenu();
+};
+
+document.getElementById("minigamesClose").onclick = () => {
+    document.getElementById("minigamesModal").style.display = "none";
+    stopAimTrainer(false);
+};
+
+function showMinigamesMenu() {
+    stopAimTrainer(false);
+    document.getElementById("minigamesMenu").style.display = "block";
+    document.getElementById("aimTrainerGame").style.display = "none";
+    
+    const highScores = JSON.parse(localStorage.getItem("aim_trainer_highscores") || "{}");
+    let maxScore = 0;
+    Object.values(highScores).forEach(score => {
+        if (score > maxScore) maxScore = score;
+    });
+    document.getElementById("aimTrainerHighScore").innerText = maxScore;
+}
+
+function startAimTrainerMenu() {
+    document.getElementById("minigamesMenu").style.display = "none";
+    document.getElementById("aimTrainerGame").style.display = "block";
+    document.getElementById("aimTrainerSetup").style.display = "block";
+    document.getElementById("aimTrainerPlayground").style.display = "none";
+    document.getElementById("aimTrainerGameOver").style.display = "none";
+    
+    updateAimTrainerSetupHighscore();
+}
+
+function updateAimTrainerSetupHighscore() {
+    const duration = getSelectedAimDuration();
+    const movement = getSelectedAimMovement();
+    const key = `${duration}_${movement}`;
+    const highScores = JSON.parse(localStorage.getItem("aim_trainer_highscores") || "{}");
+    const score = highScores[key] || 0;
+    document.getElementById("aimTrainerGameHighScore").innerText = score;
+}
+
+function setupAimTrainerToggles() {
+    const durationBtns = document.querySelectorAll("#aimDurationToggle .setup-toggle-btn");
+    durationBtns.forEach(btn => {
+        btn.onclick = () => {
+            durationBtns.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            updateAimTrainerSetupHighscore();
+        };
+    });
+
+    const movementBtns = document.querySelectorAll("#aimMovementToggle .setup-toggle-btn");
+    movementBtns.forEach(btn => {
+        btn.onclick = () => {
+            movementBtns.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            updateAimTrainerSetupHighscore();
+        };
+    });
+}
+
+function getSelectedAimDuration() {
+    const activeBtn = document.querySelector("#aimDurationToggle .setup-toggle-btn.active");
+    return activeBtn ? parseInt(activeBtn.dataset.val) : 15;
+}
+
+function getSelectedAimMovement() {
+    const activeBtn = document.querySelector("#aimMovementToggle .setup-toggle-btn.active");
+    return activeBtn ? activeBtn.dataset.val : "static";
+}
+
+document.getElementById("startAimGameBtn").onclick = startAimTrainer;
+
+function startAimTrainer() {
+    if (aimGameRunning) return;
+    
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === "suspended") {
+        ctx.resume();
+    }
+    
+    aimGameRunning = true;
+    aimScore = 0;
+    aimHits = 0;
+    aimClicks = 0;
+    aimTimeLimit = getSelectedAimDuration();
+    aimTimerValue = aimTimeLimit;
+    aimMovementType = getSelectedAimMovement();
+    aimTargets = [];
+    nextTargetId = 1;
+    
+    document.getElementById("aimTrainerSetup").style.display = "none";
+    document.getElementById("aimTrainerPlayground").style.display = "block";
+    document.getElementById("aimTrainerGameOver").style.display = "none";
+    
+    document.getElementById("gameScore").innerText = "0";
+    document.getElementById("gameTimer").innerText = aimTimerValue + "s";
+    document.getElementById("gameAccuracy").innerText = "100%";
+    
+    const targetArea = document.getElementById("aimTargetArea");
+    targetArea.innerHTML = "";
+    
+    // Set up click handler on the playground (for miss counting)
+    targetArea.onclick = handlePlaygroundClick;
+    
+    // Start game timer
+    aimGameTimerId = setInterval(() => {
+        aimTimerValue--;
+        document.getElementById("gameTimer").innerText = aimTimerValue + "s";
+        if (aimTimerValue <= 0) {
+            stopAimTrainer(true);
+        }
+    }, 1000);
+    
+    // Spawn 3 initial targets
+    for (let i = 0; i < 3; i++) {
+        spawnTarget();
+    }
+    
+    // Physics / Movement loop
+    lastFrameTime = performance.now();
+    aimAnimationId = requestAnimationFrame(updateTargetsPhysics);
+}
+
+function handlePlaygroundClick(e) {
+    if (!aimGameRunning) return;
+    
+    const target = e.target.closest(".aim-target");
+    aimClicks++;
+    
+    if (target) {
+        const targetId = parseInt(target.dataset.id);
+        aimHits++;
+        aimScore += 100;
+        
+        aimTargets = aimTargets.filter(t => t.id !== targetId);
+        target.remove();
+        
+        playHitSound();
+        createHitRipple(e.clientX, e.clientY);
+        createFloatingText(e.clientX, e.clientY, "+100", "#00ff99");
+        
+        // Spawn a replacement target immediately
+        spawnTarget();
+    } else {
+        aimScore = Math.max(0, aimScore - 25);
+        playMissSound();
+        createMissRipple(e.clientX, e.clientY);
+        createFloatingText(e.clientX, e.clientY, "-25", "#ff3333");
+    }
+    
+    updateLiveStats();
+}
+
+function updateLiveStats() {
+    document.getElementById("gameScore").innerText = aimScore;
+    const accuracy = aimClicks > 0 ? Math.round((aimHits / aimClicks) * 100) : 100;
+    document.getElementById("gameAccuracy").innerText = accuracy + "%";
+}
+
+function createHitRipple(clientX, clientY) {
+    const area = document.getElementById("aimTargetArea");
+    const rect = area.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    
+    const ripple = document.createElement("div");
+    ripple.className = "aim-hit-ripple";
+    ripple.style.left = x + "px";
+    ripple.style.top = y + "px";
+    area.appendChild(ripple);
+    
+    setTimeout(() => ripple.remove(), 400);
+}
+
+function createMissRipple(clientX, clientY) {
+    const area = document.getElementById("aimTargetArea");
+    const rect = area.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    
+    const ripple = document.createElement("div");
+    ripple.className = "aim-miss-ripple";
+    ripple.style.left = x + "px";
+    ripple.style.top = y + "px";
+    area.appendChild(ripple);
+    
+    setTimeout(() => ripple.remove(), 400);
+}
+
+function createFloatingText(clientX, clientY, text, color) {
+    const area = document.getElementById("aimTargetArea");
+    const rect = area.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    
+    const ft = document.createElement("div");
+    ft.className = "aim-floating-text";
+    ft.style.left = x + "px";
+    ft.style.top = y + "px";
+    ft.style.color = color;
+    ft.innerText = text;
+    area.appendChild(ft);
+    
+    setTimeout(() => ft.remove(), 600);
+}
+
+function spawnTarget() {
+    if (!aimGameRunning) return;
+    
+    const area = document.getElementById("aimTargetArea");
+    
+    const minX = 10;
+    const maxX = 90;
+    const minY = 10;
+    const maxY = 90;
+    
+    const x = minX + Math.random() * (maxX - minX);
+    const y = minY + Math.random() * (maxY - minY);
+    
+    let vx = 0;
+    let vy = 0;
+    const speed = 0.03 + Math.random() * 0.03;
+    
+    if (aimMovementType === "horizontal") {
+        vx = (Math.random() > 0.5 ? 1 : -1) * speed;
+    } else if (aimMovementType === "vertical") {
+        vy = (Math.random() > 0.5 ? 1 : -1) * speed;
+    } else if (aimMovementType === "mixed") {
+        const angle = Math.random() * Math.PI * 2;
+        vx = Math.cos(angle) * speed;
+        vy = Math.sin(angle) * speed;
+    }
+    
+    const targetId = nextTargetId++;
+    const targetObj = {
+        id: targetId,
+        x: x,
+        y: y,
+        vx: vx,
+        vy: vy,
+        spawnTime: performance.now(),
+        lifeTime: 2200
+    };
+    
+    aimTargets.push(targetObj);
+    
+    const targetEl = document.createElement("div");
+    targetEl.className = "aim-target";
+    targetEl.id = `target-${targetId}`;
+    targetEl.dataset.id = targetId;
+    targetEl.style.left = x + "%";
+    targetEl.style.top = y + "%";
+    
+    area.appendChild(targetEl);
+}
+
+function updateTargetsPhysics(timestamp) {
+    if (!aimGameRunning) return;
+    
+    const dt = timestamp - lastFrameTime;
+    lastFrameTime = timestamp;
+    
+    aimTargets.forEach(t => {
+        if (t.vx !== 0 || t.vy !== 0) {
+            t.x += t.vx * dt;
+            t.y += t.vy * dt;
+            
+            if (t.x < 5) {
+                t.x = 5;
+                t.vx *= -1;
+            } else if (t.x > 95) {
+                t.x = 95;
+                t.vx *= -1;
+            }
+            
+            if (t.y < 5) {
+                t.y = 5;
+                t.vy *= -1;
+            } else if (t.y > 95) {
+                t.y = 95;
+                t.vy *= -1;
+            }
+            
+            const el = document.getElementById(`target-${t.id}`);
+            if (el) {
+                el.style.left = t.x + "%";
+                el.style.top = t.y + "%";
+            }
+        }
+    });
+    
+    aimAnimationId = requestAnimationFrame(updateTargetsPhysics);
+}
+
+function stopAimTrainer(finished = false) {
+    aimGameRunning = false;
+    
+    if (aimGameTimerId) {
+        clearInterval(aimGameTimerId);
+        aimGameTimerId = null;
+    }
+    if (aimSpawnTimerId) {
+        clearInterval(aimSpawnTimerId);
+        aimSpawnTimerId = null;
+    }
+    if (aimAnimationId) {
+        cancelAnimationFrame(aimAnimationId);
+        aimAnimationId = null;
+    }
+    
+    const targetArea = document.getElementById("aimTargetArea");
+    if (targetArea) {
+        targetArea.onclick = null;
+        targetArea.innerHTML = "";
+    }
+    
+    if (finished) {
+        const accuracy = aimClicks > 0 ? Math.round((aimHits / aimClicks) * 100) : 0;
+        const hps = aimTimeLimit > 0 ? (aimHits / aimTimeLimit).toFixed(2) : "0.00";
+        
+        document.getElementById("endScore").innerText = aimScore;
+        document.getElementById("endAccuracy").innerText = accuracy + "%";
+        document.getElementById("endHits").innerText = aimHits;
+        document.getElementById("endClicks").innerText = aimClicks;
+        document.getElementById("endHps").innerText = hps + " HPS";
+        
+        const duration = aimTimeLimit;
+        const movement = aimMovementType;
+        const key = `${duration}_${movement}`;
+        const highScores = JSON.parse(localStorage.getItem("aim_trainer_highscores") || "{}");
+        const oldHighScore = highScores[key] || 0;
+        
+        let isNewHighScore = false;
+        if (aimScore > oldHighScore) {
+            highScores[key] = aimScore;
+            localStorage.setItem("aim_trainer_highscores", JSON.stringify(highScores));
+            isNewHighScore = true;
+        }
+        
+        const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+        if (auth && auth.session_token) {
+            fetch(`${API_URL}/update-highscore`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username: auth.username,
+                    session_token: auth.session_token,
+                    highscore: aimScore
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "ok") {
+                    auth.aim_highscore = data.aim_highscore;
+                    localStorage.setItem("urban_auth", JSON.stringify(auth));
+                    if (data.aim_highscore > oldHighScore) {
+                        highScores[key] = data.aim_highscore;
+                        localStorage.setItem("aim_trainer_highscores", JSON.stringify(highScores));
+                        document.getElementById("newHighScoreFlash").style.display = "block";
+                    }
+                }
+            })
+            .catch(err => console.error("Erro ao salvar recorde no banco:", err));
+        }
+        
+        document.getElementById("aimTrainerPlayground").style.display = "none";
+        document.getElementById("aimTrainerGameOver").style.display = "block";
+        
+        const flashMsg = document.getElementById("newHighScoreFlash");
+        if (isNewHighScore) {
+            flashMsg.style.display = "block";
+        } else {
+            flashMsg.style.display = "none";
+        }
+    }
+}
+
+function restartAimTrainer() {
+    document.getElementById("aimTrainerGameOver").style.display = "none";
+    startAimTrainer();
+}
+
+setupAimTrainerToggles();
+checkSession();

@@ -9,6 +9,8 @@ import time
 import sqlite3
 import base64
 import random
+import hashlib
+import uuid
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs, unquote
 
@@ -37,14 +39,41 @@ def init_db():
                  (name TEXT PRIMARY KEY, avatar_url TEXT, auth_code TEXT, auth_expiry DATETIME, avatar_original_url TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS matches
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, map TEXT, date TEXT, mvp TEXT, kills INTEGER, scoreboard TEXT)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS users
+                 (username TEXT PRIMARY KEY, password_hash TEXT, player_name TEXT, session_token TEXT, aim_highscore INTEGER DEFAULT 0)''')
     try:
         c.execute("ALTER TABLE matches ADD COLUMN duration REAL DEFAULT 0.0;")
-        conn.commit()
     except Exception:
         pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN aim_highscore INTEGER DEFAULT 0;")
+    except Exception:
+        pass
+    conn.commit()
     conn.close()
 
 init_db()
+
+# ── Password Hashing Helpers ──
+
+def hash_password(password, salt=None):
+    if salt is None:
+        salt = os.urandom(16).hex()
+    pwd_hash = hashlib.pbkdf2_hmac(
+        'sha256',
+        password.encode('utf-8'),
+        salt.encode('utf-8'),
+        100000
+    ).hex()
+    return f"{salt}${pwd_hash}"
+
+def verify_password(stored_hash, password):
+    try:
+        salt, pwd_hash = stored_hash.split('$')
+        comp_hash = hash_password(password, salt)
+        return comp_hash == stored_hash
+    except Exception:
+        return False
 
 def get_player_avatar(name):
     try:
@@ -377,6 +406,83 @@ def update_cached_match_stats():
         print(f"[INFO] Cached match stats updated for {len(stats)} players")
     except Exception as e:
         print("Erro ao atualizar cached_match_stats:", e)
+
+def rename_player_data(old_name, new_name):
+    old_clean = clean_name(old_name)
+    new_clean = clean_name(new_name)
+    if not old_clean or not new_clean or old_clean == new_clean:
+        return False
+
+    # 1. Update global_stats in memory & file
+    with stats_lock:
+        for period in ["all", "daily"]:
+            stats = global_stats.get(period, {})
+            for key in ["kills", "deaths", "hits", "headshots", "triple_kills", "max_streak", "hit_locations"]:
+                if key in stats and old_clean in stats[key]:
+                    stats[key][new_clean] = stats[key].pop(old_clean)
+            
+            if "weapons" in stats and old_clean in stats["weapons"]:
+                stats["weapons"][new_clean] = stats["weapons"].pop(old_clean)
+            
+            if "relationships" in stats:
+                if old_clean in stats["relationships"]:
+                    stats["relationships"][new_clean] = stats["relationships"].pop(old_clean)
+                for p in stats["relationships"]:
+                    if old_clean in stats["relationships"][p]:
+                        stats["relationships"][p][new_clean] = stats["relationships"][p].pop(old_clean)
+        
+        save_stats()
+
+    # 2. Update profiles and matches tables in SQLite
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        c = conn.cursor()
+        
+        c.execute("SELECT name FROM profiles WHERE name = ?", (new_clean,))
+        new_exists = c.fetchone()
+        
+        if new_exists:
+            c.execute("SELECT avatar_url, avatar_original_url FROM profiles WHERE name = ?", (old_clean,))
+            old_profile = c.fetchone()
+            if old_profile and old_profile[0]:
+                c.execute("UPDATE profiles SET avatar_url = ?, avatar_original_url = ? WHERE name = ?", 
+                          (old_profile[0], old_profile[1], new_clean))
+            c.execute("DELETE FROM profiles WHERE name = ?", (old_clean,))
+        else:
+            c.execute("UPDATE profiles SET name = ? WHERE name = ?", (new_clean, old_clean))
+            
+        c.execute("UPDATE matches SET mvp = ? WHERE mvp = ?", (new_clean, old_clean))
+        c.execute("UPDATE matches SET mvp = ? WHERE mvp = ?", (old_name, old_clean))
+        
+        c.execute("SELECT id, scoreboard FROM matches WHERE scoreboard LIKE ?", (f'%"{old_clean}"%',))
+        matches_to_update = c.fetchall()
+        c.execute("SELECT id, scoreboard FROM matches WHERE scoreboard LIKE ?", (f'%"{old_name}"%',))
+        matches_to_update_raw = c.fetchall()
+        
+        all_matches = set(matches_to_update + matches_to_update_raw)
+        
+        for mid, sb_json in all_matches:
+            if sb_json:
+                try:
+                    sb = json.loads(sb_json)
+                    updated = False
+                    for item in sb:
+                        if item.get("player") == old_name or clean_name(item.get("player")) == old_clean:
+                            item["player"] = new_clean
+                            updated = True
+                    if updated:
+                        c.execute("UPDATE matches SET scoreboard = ? WHERE id = ?", (json.dumps(sb), mid))
+                except Exception as ex:
+                    print("Erro ao atualizar scoreboard de partida:", ex)
+                    
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print("Erro ao renomear jogador no banco de dados:", e)
+        return False
+        
+    update_cached_match_stats()
+    return True
 
 def int_to_roman(num):
     if num <= 0:
@@ -1156,6 +1262,19 @@ class VoteServer(SimpleHTTPRequestHandler):
                     }
 
                 avatar_url, avatar_orig = get_player_avatars(player_name)
+
+                aim_highscore = 0
+                try:
+                    conn = sqlite3.connect(DB_FILE)
+                    c = conn.cursor()
+                    c.execute("SELECT aim_highscore FROM users WHERE player_name = ?", (clean_name(player_name),))
+                    res = c.fetchone()
+                    if res:
+                        aim_highscore = res[0]
+                    conn.close()
+                except Exception as e:
+                    print("Erro ao buscar aim_highscore:", e)
+
                 data = {
                     "player": player_name,
                     "kills": kills,
@@ -1174,7 +1293,8 @@ class VoteServer(SimpleHTTPRequestHandler):
                     "hsPercent": hs_percent,
                     "achievements": achievements_data,
                     "hitLocations": hit_locations_pct,
-                    "totalHits": total_located_hits
+                    "totalHits": total_located_hits,
+                    "aimHighscore": aim_highscore
                 }
             self.send_response(200)
             self.end_cors()
@@ -1218,6 +1338,347 @@ class VoteServer(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self):
+        if self.path == "/register":
+            try:
+                content_length = int(self.headers["Content-Length"])
+                data = json.loads(self.rfile.read(content_length).decode("utf-8"))
+                username = data.get("username", "").strip()
+                password = data.get("password", "").strip()
+                
+                if not username or not password:
+                    self.send_response(400)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Usuario e senha obrigatorios")
+                    return
+                
+                cleaned_user = clean_name(username)
+                if not cleaned_user or len(cleaned_user) < 3 or len(cleaned_user) > 20:
+                    self.send_response(400)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Usuario invalido (3-20 caracteres)")
+                    return
+
+                conn = sqlite3.connect(DB_FILE)
+                c = conn.cursor()
+                c.execute("SELECT username FROM users WHERE username = ?", (cleaned_user,))
+                if c.fetchone():
+                    conn.close()
+                    self.send_response(400)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Usuario ja cadastrado")
+                    return
+                
+                pwd_hash = hash_password(password)
+                c.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (cleaned_user, pwd_hash))
+                conn.commit()
+                
+                player_name_payload = data.get("player_name", "").strip()
+                auth_code_payload = data.get("auth_code", "").strip()
+                
+                linked_player = None
+                if player_name_payload and auth_code_payload:
+                    cleaned_player = clean_name(player_name_payload)
+                    if verify_auth_code(cleaned_player, auth_code_payload):
+                        c.execute("SELECT username FROM users WHERE player_name = ?", (cleaned_player,))
+                        already_linked = c.fetchone()
+                        if not already_linked:
+                            c.execute("UPDATE users SET player_name = ? WHERE username = ?", (cleaned_player, cleaned_user))
+                            conn.commit()
+                            linked_player = cleaned_player
+                            print(f"[INFO] Auto-linked register session player '{cleaned_player}' to user '{cleaned_user}'.")
+                
+                if not linked_player:
+                    c.execute("SELECT name FROM profiles WHERE name = ?", (cleaned_user,))
+                    prof_exists = c.fetchone()
+                    if prof_exists:
+                        c.execute("SELECT username FROM users WHERE player_name = ?", (cleaned_user,))
+                        already_linked = c.fetchone()
+                        if not already_linked:
+                            c.execute("UPDATE users SET player_name = ? WHERE username = ?", (cleaned_user, cleaned_user))
+                            conn.commit()
+                            linked_player = cleaned_user
+                            print(f"[INFO] Auto-linked register username '{cleaned_user}' to player profile.")
+                
+                conn.close()
+                
+                self.send_response(200)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "ok", "auto_linked": linked_player}).encode("utf-8"))
+            except Exception as e:
+                self.send_response(500)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(str(e).encode("utf-8"))
+            return
+
+        if self.path == "/login":
+            try:
+                content_length = int(self.headers["Content-Length"])
+                data = json.loads(self.rfile.read(content_length).decode("utf-8"))
+                username = data.get("username", "").strip()
+                password = data.get("password", "").strip()
+                player_name_payload = data.get("player_name", "").strip()
+                auth_code_payload = data.get("auth_code", "").strip()
+                
+                cleaned_user = clean_name(username)
+                conn = sqlite3.connect(DB_FILE)
+                c = conn.cursor()
+                c.execute("SELECT password_hash, player_name, aim_highscore FROM users WHERE username = ?", (cleaned_user,))
+                res = c.fetchone()
+                
+                if not res or not verify_password(res[0], password):
+                    conn.close()
+                    self.send_response(401)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Usuario ou senha incorretos")
+                    return
+                
+                player_name = res[1]
+                aim_highscore = res[2]
+                
+                if not player_name and player_name_payload and auth_code_payload:
+                    cleaned_player = clean_name(player_name_payload)
+                    if verify_auth_code(cleaned_player, auth_code_payload):
+                        c.execute("SELECT username FROM users WHERE player_name = ?", (cleaned_player,))
+                        already_linked = c.fetchone()
+                        if not already_linked:
+                            c.execute("UPDATE users SET player_name = ? WHERE username = ?", (cleaned_player, cleaned_user))
+                            conn.commit()
+                            player_name = cleaned_player
+                            print(f"[INFO] Auto-linked login session player '{cleaned_player}' to user '{cleaned_user}'.")
+                
+                if not player_name:
+                    c.execute("SELECT name FROM profiles WHERE name = ?", (cleaned_user,))
+                    prof_exists = c.fetchone()
+                    if prof_exists:
+                        c.execute("SELECT username FROM users WHERE player_name = ?", (cleaned_user,))
+                        already_linked = c.fetchone()
+                        if not already_linked:
+                            c.execute("UPDATE users SET player_name = ? WHERE username = ?", (cleaned_user, cleaned_user))
+                            conn.commit()
+                            player_name = cleaned_user
+                            print(f"[INFO] Auto-linked login username '{cleaned_user}' to player profile.")
+                
+                session_token = str(uuid.uuid4())
+                c.execute("UPDATE users SET session_token = ? WHERE username = ?", (session_token, cleaned_user))
+                conn.commit()
+                conn.close()
+                
+                self.send_response(200)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "status": "ok",
+                    "username": cleaned_user,
+                    "player_name": player_name,
+                    "session_token": session_token,
+                    "aim_highscore": aim_highscore
+                }).encode("utf-8"))
+            except Exception as e:
+                self.send_response(500)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(str(e).encode("utf-8"))
+            return
+
+        if self.path == "/link-player":
+            try:
+                content_length = int(self.headers["Content-Length"])
+                data = json.loads(self.rfile.read(content_length).decode("utf-8"))
+                username = data.get("username", "").strip()
+                session_token = data.get("session_token", "").strip()
+                player_name = data.get("player_name", "").strip()
+                auth_code = data.get("auth_code", "").strip()
+                
+                cleaned_user = clean_name(username)
+                cleaned_player = clean_name(player_name)
+                
+                if not cleaned_user or not session_token or not cleaned_player or not auth_code:
+                    self.send_response(400)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Campos obrigatorios faltando")
+                    return
+                
+                conn = sqlite3.connect(DB_FILE)
+                c = conn.cursor()
+                c.execute("SELECT session_token FROM users WHERE username = ?", (cleaned_user,))
+                res = c.fetchone()
+                
+                if not res or res[0] != session_token:
+                    conn.close()
+                    self.send_response(401)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Sessao invalida. Faca login novamente.")
+                    return
+                
+                c.execute("SELECT username FROM users WHERE player_name = ? AND username != ?", (cleaned_player, cleaned_user))
+                claimed = c.fetchone()
+                if claimed:
+                    conn.close()
+                    self.send_response(400)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Este personagem ja esta vinculado a outra conta")
+                    return
+                
+                if verify_auth_code(player_name, auth_code):
+                    c.execute("UPDATE users SET player_name = ? WHERE username = ?", (cleaned_player, cleaned_user))
+                    
+                    c.execute("SELECT name FROM profiles WHERE name = ?", (cleaned_player,))
+                    if not c.fetchone():
+                        c.execute("INSERT INTO profiles (name) VALUES (?)", (cleaned_player,))
+                        
+                    conn.commit()
+                    conn.close()
+                    
+                    self.send_response(200)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"status": "ok", "player_name": cleaned_player}).encode("utf-8"))
+                else:
+                    conn.close()
+                    self.send_response(403)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Codigo de autenticacao invalido ou expirado")
+            except Exception as e:
+                self.send_response(500)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(str(e).encode("utf-8"))
+            return
+
+        if self.path == "/rename-player":
+            try:
+                content_length = int(self.headers["Content-Length"])
+                data = json.loads(self.rfile.read(content_length).decode("utf-8"))
+                username = data.get("username", "").strip()
+                session_token = data.get("session_token", "").strip()
+                new_player_name = data.get("new_player_name", "").strip()
+                auth_code = data.get("auth_code", "").strip()
+                
+                cleaned_user = clean_name(username)
+                cleaned_new_player = clean_name(new_player_name)
+                
+                if not cleaned_user or not session_token or not cleaned_new_player or not auth_code:
+                    self.send_response(400)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Campos obrigatorios faltando")
+                    return
+                
+                conn = sqlite3.connect(DB_FILE)
+                c = conn.cursor()
+                c.execute("SELECT session_token, player_name FROM users WHERE username = ?", (cleaned_user,))
+                res = c.fetchone()
+                
+                if not res or res[0] != session_token:
+                    conn.close()
+                    self.send_response(401)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Sessao invalida. Faca login novamente.")
+                    return
+                
+                old_player_name = res[1]
+                if not old_player_name:
+                    conn.close()
+                    self.send_response(400)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Voce precisa vincular um personagem primeiro")
+                    return
+                
+                c.execute("SELECT username FROM users WHERE player_name = ? AND username != ?", (cleaned_new_player, cleaned_user))
+                claimed = c.fetchone()
+                if claimed:
+                    conn.close()
+                    self.send_response(400)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"O novo nick ja esta vinculado a outra conta")
+                    return
+                
+                if verify_auth_code(new_player_name, auth_code):
+                    conn.close()
+                    success = rename_player_data(old_player_name, cleaned_new_player)
+                    
+                    if success:
+                        conn = sqlite3.connect(DB_FILE)
+                        c = conn.cursor()
+                        c.execute("UPDATE users SET player_name = ? WHERE username = ?", (cleaned_new_player, cleaned_user))
+                        conn.commit()
+                        conn.close()
+                        
+                        self.send_response(200)
+                        self.end_cors()
+                        self.end_headers()
+                        self.wfile.write(json.dumps({"status": "ok", "player_name": cleaned_new_player}).encode("utf-8"))
+                    else:
+                        self.send_response(500)
+                        self.end_cors()
+                        self.end_headers()
+                        self.wfile.write(b"Erro interno ao renomear dados do jogador")
+                else:
+                    conn.close()
+                    self.send_response(403)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Codigo de autenticacao para o novo nick invalido ou expirado")
+            except Exception as e:
+                self.send_response(500)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(str(e).encode("utf-8"))
+            return
+        if self.path == "/update-highscore":
+            try:
+                content_length = int(self.headers["Content-Length"])
+                data = json.loads(self.rfile.read(content_length).decode("utf-8"))
+                username = data.get("username", "").strip()
+                session_token = data.get("session_token", "").strip()
+                highscore = int(data.get("highscore", 0))
+                
+                cleaned_user = clean_name(username)
+                
+                conn = sqlite3.connect(DB_FILE)
+                c = conn.cursor()
+                c.execute("SELECT session_token, aim_highscore FROM users WHERE username = ?", (cleaned_user,))
+                res = c.fetchone()
+                
+                if not res or res[0] != session_token:
+                    conn.close()
+                    self.send_response(401)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Sessao expirada.")
+                    return
+                
+                current_highscore = res[1]
+                if highscore > current_highscore:
+                    c.execute("UPDATE users SET aim_highscore = ? WHERE username = ?", (highscore, cleaned_user))
+                    conn.commit()
+                    current_highscore = highscore
+                
+                conn.close()
+                self.send_response(200)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "ok", "aim_highscore": current_highscore}).encode("utf-8"))
+            except Exception as e:
+                self.send_response(500)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(str(e).encode("utf-8"))
+            return
+
         if self.path == "/reset":
             try:
                 content_length = int(self.headers["Content-Length"])
@@ -1273,8 +1734,28 @@ class VoteServer(SimpleHTTPRequestHandler):
                 data = json.loads(self.rfile.read(content_length).decode("utf-8"))
                 name, code, b64_image = data.get("name"), data.get("code"), data.get("image")
                 b64_original = data.get("originalImage")
+                username = data.get("username")
+                session_token = data.get("session_token")
                 
-                if verify_auth_code(name, code):
+                authorized = False
+                cleaned_name = clean_name(name)
+                
+                if username and session_token:
+                    cleaned_user = clean_name(username)
+                    conn = sqlite3.connect(DB_FILE)
+                    c = conn.cursor()
+                    c.execute("SELECT session_token, player_name FROM users WHERE username = ?", (cleaned_user,))
+                    res = c.fetchone()
+                    conn.close()
+                    
+                    if res and res[0] == session_token and res[1] == cleaned_name:
+                        authorized = True
+                
+                if not authorized and code:
+                    if verify_auth_code(name, code):
+                        authorized = True
+                
+                if authorized:
                     url = save_avatar(name, b64_image, b64_original)
                     if url:
                         self.send_response(200)
@@ -1290,7 +1771,7 @@ class VoteServer(SimpleHTTPRequestHandler):
                     self.send_response(403)
                     self.end_cors()
                     self.end_headers()
-                    self.wfile.write(b"Acesso negado")
+                    self.wfile.write(b"Acesso negado: codigo invalido ou sessao expirada")
             except Exception as e:
                 self.send_response(500)
                 self.end_cors()
