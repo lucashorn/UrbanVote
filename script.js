@@ -1,3 +1,30 @@
+// ─── Toast helper (SweetAlert2) ─────────────────────────────────────────────
+const Toast = (typeof Swal !== "undefined") ? Swal.mixin({
+    toast: true,
+    position: "top-end",
+    showConfirmButton: false,
+    timer: 3500,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+        toast.addEventListener("mouseenter", Swal.stopTimer);
+        toast.addEventListener("mouseleave", Swal.resumeTimer);
+    }
+}) : null;
+
+/**
+ * @param {"success"|"error"|"warning"|"info"} icon
+ * @param {string} message
+ */
+function showToast(icon, message) {
+    if (Toast) {
+        Toast.fire({ icon, title: message });
+    } else {
+        // Fallback to native alert when SweetAlert2 hasn't loaded yet
+        alert(message);
+    }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function generateBrowserId() {
     return 'id-' + Date.now() + '-' + Math.random().toString(36).substring(2, 10);
 }
@@ -529,7 +556,7 @@ function setupFriendlyFireButtons() {
 
 function openVoteModal(map) {
     if (hasAlreadyVotedForMap(map)) {
-        alert("Você já votou neste mapa hoje.");
+        showToast("warning", "Você já votou neste mapa hoje.");
         return;
     }
 
@@ -588,7 +615,7 @@ async function confirmVote() {
     });
 
     if (!response.ok) {
-        alert(await response.text());
+        showToast("error", await response.text());
         return;
     }
 
@@ -743,7 +770,7 @@ function getMapcycleContent() {
 function downloadMapcycle() {
     const content = getMapcycleContent();
     if (!content) {
-        alert("Nenhum voto para gerar mapcycle.");
+        showToast("warning", "Nenhum voto para gerar mapcycle.");
         return;
     }
 
@@ -824,7 +851,7 @@ async function updateServerStatus() {
 async function startServer() {
     const content = getMapcycleContent();
     if (!content) {
-        alert("Nenhum voto para gerar mapcycle.");
+        showToast("warning", "Nenhum voto para gerar mapcycle.");
         return;
     }
 
@@ -854,12 +881,12 @@ async function startServer() {
                 }
             }, 1000);
         } else {
-            alert("Erro ao iniciar servidor: " + await response.text());
+            showToast("error", "Erro ao iniciar servidor: " + await response.text());
             btn.disabled = false;
             btn.innerHTML = originalText;
         }
     } catch (e) {
-        alert("Erro na requisição: " + e.message);
+        showToast("error", "Erro na requisição: " + e.message);
         btn.disabled = false;
         btn.innerHTML = originalText;
     }
@@ -892,12 +919,12 @@ async function stopServer() {
                 }
             }, 1000);
         } else {
-            alert("Erro ao parar servidor: " + await response.text());
+            showToast("error", "Erro ao parar servidor: " + await response.text());
             btn.disabled = false;
             btn.innerHTML = originalText;
         }
     } catch (e) {
-        alert("Erro na requisição: " + e.message);
+        showToast("error", "Erro na requisição: " + e.message);
         btn.disabled = false;
         btn.innerHTML = originalText;
     }
@@ -908,7 +935,7 @@ async function resetVotesManual() {
     const pass = prompt("Senha:");
 
     if (user !== "admin" || pass !== "coco") {
-        alert("Usuário ou senha inválidos.");
+        showToast("error", "Usuário ou senha inválidos.");
         return;
     }
 
@@ -925,7 +952,7 @@ async function resetVotesManual() {
     });
 
     if (!response.ok) {
-        alert("Erro ao resetar no servidor: " + await response.text());
+        showToast("error", "Erro ao resetar no servidor: " + await response.text());
         return;
     }
 
@@ -934,7 +961,7 @@ async function resetVotesManual() {
     localStorage.setItem(DATE_KEY, getToday());
 
     renderMaps();
-    alert("Votação resetada com sucesso.");
+    showToast("success", "Votação resetada com sucesso.");
 }
 
 let activeKillTab = "daily";
@@ -2419,15 +2446,15 @@ async function execAdminCmd(cmdType, payload) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
         });
-        if (!res.ok) alert("Erro: " + await res.text());
+        if (!res.ok) { showToast("error", "Erro: " + await res.text()); return; }
         else {
-            alert("Comando executado!");
+            showToast("success", "Comando executado!");
             if (cmdType === "map") document.getElementById("adminMapInput").value = "";
             if (cmdType === "kick") document.getElementById("adminKickInput").value = "";
             if (cmdType === "say") document.getElementById("adminSayInput").value = "";
         }
     } catch (e) {
-        alert("Erro na requisição: " + e.message);
+        showToast("error", "Erro na requisição: " + e.message);
     }
 }
 
@@ -2656,7 +2683,7 @@ async function handleLinkCharacter() {
     const playerName = document.getElementById("mgmtLinkNick").value.trim();
     const code = document.getElementById("mgmtLinkCode").value.trim();
     
-    if (!playerName || !code) return alert("Preencha o nick e o código.");
+    if (!playerName || !code) { showToast("warning", "Preencha o nick e o código."); return; }
     
     try {
         const res = await fetch(`${API_URL}/link-player`, {
@@ -2680,12 +2707,12 @@ async function handleLinkCharacter() {
             
             checkSession();
             openAccountMgmtModal();
-            alert("Personagem vinculado com sucesso!");
+            showToast("success", "Personagem vinculado com sucesso!");
         } else {
-            alert(await res.text());
+            showToast("error", await res.text());
         }
     } catch (e) {
-        alert("Erro na conexão.");
+        showToast("error", "Erro na conexão.");
     }
 }
 
@@ -2696,7 +2723,7 @@ async function handleRenameCharacter() {
     const newName = document.getElementById("mgmtNewNick").value.trim();
     const code = document.getElementById("mgmtNewNickCode").value.trim();
     
-    if (!newName || !code) return alert("Preencha o novo nick e o novo código (!auth).");
+    if (!newName || !code) { showToast("warning", "Preencha o novo nick e o novo código (!auth)."); return; }
     
     try {
         const res = await fetch(`${API_URL}/rename-player`, {
@@ -2720,13 +2747,13 @@ async function handleRenameCharacter() {
             
             checkSession();
             openAccountMgmtModal();
-            alert("Personagem renomeado e histórico migrado com sucesso!");
+            showToast("success", "Personagem renomeado e histórico migrado com sucesso!");
             location.reload();
         } else {
-            alert(await res.text());
+            showToast("error", await res.text());
         }
     } catch (e) {
-        alert("Erro na conexão.");
+        showToast("error", "Erro na conexão.");
     }
 }
 
@@ -2752,7 +2779,7 @@ function handleLogout() {
 
     checkSession();
     document.getElementById("accountMgmtModal").style.display = "none";
-    alert("Sessão encerrada.");
+    showToast("info", "Sessão encerrada.");
 }
 
 let avatarCropper = null;
@@ -2871,13 +2898,13 @@ async function handleAvatarUploadSubmit(imgData, originalImgData) {
             })
         });
         if (res.ok) {
-            alert("Foto de perfil atualizada!");
+            showToast("success", "Foto de perfil atualizada!");
             location.reload();
         } else {
-            alert(await res.text());
+            showToast("error", await res.text());
         }
     } catch (e) {
-        alert("Erro ao enviar imagem.");
+        showToast("error", "Erro ao enviar imagem.");
     }
 }
 

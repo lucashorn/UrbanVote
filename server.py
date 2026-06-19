@@ -1522,6 +1522,22 @@ class VoteServer(SimpleHTTPRequestHandler):
                         c.execute("SELECT username FROM users WHERE player_name = ?", (cleaned_player,))
                         already_linked = c.fetchone()
                         if not already_linked:
+                            c.execute("SELECT avatar_url, avatar_original_url FROM profiles WHERE name = ?", (cleaned_user,))
+                            user_profile = c.fetchone()
+                            c.execute("SELECT name FROM profiles WHERE name = ?", (cleaned_player,))
+                            new_exists = c.fetchone()
+                            if new_exists:
+                                if user_profile and user_profile[0]:
+                                    c.execute("UPDATE profiles SET avatar_url = ?, avatar_original_url = ? WHERE name = ?", 
+                                              (user_profile[0], user_profile[1], cleaned_player))
+                                    c.execute("DELETE FROM profiles WHERE name = ?", (cleaned_user,))
+                            else:
+                                c.execute("SELECT name FROM profiles WHERE name = ?", (cleaned_user,))
+                                if c.fetchone():
+                                    c.execute("UPDATE profiles SET name = ? WHERE name = ?", (cleaned_player, cleaned_user))
+                                else:
+                                    c.execute("INSERT INTO profiles (name) VALUES (?)", (cleaned_player,))
+                                    
                             c.execute("UPDATE users SET player_name = ? WHERE username = ?", (cleaned_player, cleaned_user))
                             conn.commit()
                             player_name = cleaned_player
@@ -1606,9 +1622,24 @@ class VoteServer(SimpleHTTPRequestHandler):
                 if verify_auth_code(player_name, auth_code):
                     c.execute("UPDATE users SET player_name = ? WHERE username = ?", (cleaned_player, cleaned_user))
                     
+                    c.execute("SELECT avatar_url, avatar_original_url FROM profiles WHERE name = ?", (cleaned_user,))
+                    user_profile = c.fetchone()
+                    
                     c.execute("SELECT name FROM profiles WHERE name = ?", (cleaned_player,))
-                    if not c.fetchone():
-                        c.execute("INSERT INTO profiles (name) VALUES (?)", (cleaned_player,))
+                    new_exists = c.fetchone()
+                    
+                    if new_exists:
+                        if user_profile and user_profile[0]:
+                            c.execute("UPDATE profiles SET avatar_url = ?, avatar_original_url = ? WHERE name = ?", 
+                                      (user_profile[0], user_profile[1], cleaned_player))
+                            c.execute("DELETE FROM profiles WHERE name = ?", (cleaned_user,))
+                    else:
+                        # If a profile doesn't exist for the player yet, just rename the username profile to the player name
+                        c.execute("SELECT name FROM profiles WHERE name = ?", (cleaned_user,))
+                        if c.fetchone():
+                            c.execute("UPDATE profiles SET name = ? WHERE name = ?", (cleaned_player, cleaned_user))
+                        else:
+                            c.execute("INSERT INTO profiles (name) VALUES (?)", (cleaned_player,))
                         
                     conn.commit()
                     conn.close()
