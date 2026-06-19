@@ -2777,9 +2777,8 @@ function handleLogout() {
     const grenadeHighScoreEl = document.getElementById("grenadeHighScore");
     if (grenadeHighScoreEl) grenadeHighScoreEl.innerText = "0";
 
-    checkSession();
-    document.getElementById("accountMgmtModal").style.display = "none";
     showToast("info", "Sessão encerrada.");
+    setTimeout(() => { window.location.href = "login.html"; }, 1500);
 }
 
 let avatarCropper = null;
