@@ -2529,6 +2529,17 @@ document.getElementById("myProfileBtn").onclick = () => {
     openAccountMgmtModal();
 };
 
+const viewMyProfileBtn = document.getElementById("viewMyProfileBtn");
+if (viewMyProfileBtn) {
+    viewMyProfileBtn.onclick = () => {
+        const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+        if (auth) {
+            document.getElementById("accountMgmtModal").style.display = "none";
+            openProfile(auth.player_name || auth.username);
+        }
+    };
+}
+
 document.getElementById("accountMgmtClose").onclick = () => {
     document.getElementById("accountMgmtModal").style.display = "none";
 };

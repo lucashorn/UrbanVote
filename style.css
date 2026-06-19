@@ -3161,6 +3161,11 @@ table.dataTable tbody td {
     }
 }
 
+#viewMyProfileBtn:hover {
+    background: #9333ea !important;
+    border-color: #9333ea !important;
+}
+
 
 
 

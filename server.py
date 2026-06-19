@@ -1085,7 +1085,7 @@ class VoteServer(SimpleHTTPRequestHandler):
                 try:
                     conn = sqlite3.connect(DB_FILE)
                     c = conn.cursor()
-                    c.execute("SELECT DISTINCT player_name FROM users WHERE player_name IS NOT NULL AND player_name != ''")
+                    c.execute("SELECT DISTINCT COALESCE(player_name, username) FROM users WHERE COALESCE(player_name, username) IS NOT NULL AND COALESCE(player_name, username) != ''")
                     for row in c.fetchall():
                         players.add(row[0])
                     conn.close()
@@ -1304,6 +1304,10 @@ class VoteServer(SimpleHTTPRequestHandler):
                     c = conn.cursor()
                     c.execute("SELECT aim_highscore, reaction_highscore, spray_highscore, fof_highscore, grenade_highscore FROM users WHERE player_name = ?", (clean_name(player_name),))
                     res = c.fetchone()
+                    if not res:
+                        # Fallback for users who haven't linked a player name yet
+                        c.execute("SELECT aim_highscore, reaction_highscore, spray_highscore, fof_highscore, grenade_highscore FROM users WHERE username = ?", (clean_name(player_name),))
+                        res = c.fetchone()
                     if res:
                         aim_highscore = res[0] or 0
                         reaction_highscore = res[1] or 0
