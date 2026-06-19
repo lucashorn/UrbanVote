@@ -4422,9 +4422,6 @@ function handleGrenadeMouseUp(e) {
         grenadeTimer = 0;
         
         playPinPullSound();
-    } else {
-        // Bring back the message if the user didn't pull back far enough
-        document.getElementById("grenadeInstructionOverlay").style.opacity = "1";
     }
 }
 
@@ -4572,7 +4569,6 @@ function triggerGrenadeExplosion() {
             grenadeLaunchCount++;
             document.getElementById("grenadeLaunchCount").innerText = `${grenadeLaunchCount} / 5`;
             generateGrenadeLayout(grenadeLaunchCount);
-            document.getElementById("grenadeInstructionOverlay").style.opacity = "1";
         }
     }, 1800);
 }
