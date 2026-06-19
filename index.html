@@ -571,6 +571,16 @@
                             Recorde: <span id="fofHighScore">0</span> pts
                         </div>
                     </div>
+                    <div class="minigame-card" onclick="startGrenadeTrainerMenu()">
+                        <i class="fas fa-bomb"
+                            style="font-size: 2.5em; color: #ff5500; margin-bottom: 12px; display: block; text-align: center;"></i>
+                        <h3 style="color: #eee; margin: 0 0 8px 0; text-align: center;">Trajetória de Granada</h3>
+                        <p style="color: #aaa; font-size: 0.85em; line-height: 1.4; margin: 0 0 12px 0;">Ajuste força e ângulo para lançar granadas sobre obstáculos e acertar a zona de detonação.</p>
+                        <div
+                            style="background: rgba(168, 85, 247, 0.05); border: 1px dashed #a855f7; border-radius: 6px; padding: 8px; text-align: center; font-size: 0.85em; color: #d8b4fe;">
+                            Recorde: <span id="grenadeHighScore">0</span> pts
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -900,6 +910,96 @@
 
                     <div style="display: flex; gap: 10px; margin-top: 25px;">
                         <button onclick="startFofGame()" style="flex: 1; background: #a855f7; color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);">
+                            Jogar Novamente
+                        </button>
+                        <button onclick="showMinigamesMenu()" style="flex: 1; background: #333; border: 1px solid #444; color: #ccc; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none;">
+                            Menu Principal
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tela de Jogo de Trajetória de Granada -->
+            <div id="grenadeTrainerGame" style="display: none;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+                    <button onclick="showMinigamesMenu()" style="background: transparent; border: 1px solid #555; color: #ccc; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em;">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                    <h3 style="margin: 0; color: #ff5500; text-shadow: 0 0 5px rgba(255, 85, 0, 0.3);"><i class="fas fa-bomb"></i> Trajetória de Granada</h3>
+                    <div style="font-size: 0.85em; color: #aaa;">
+                        Recorde: <span id="grenadeGameHighScore" style="color: #ffaa00; font-weight: bold;">0</span> pts
+                    </div>
+                </div>
+
+                <!-- Setup / Configuração -->
+                <div id="grenadeTrainerSetup" style="text-align: center; padding: 20px 10px;">
+                    <p style="color: #ccc; font-size: 0.95em; line-height: 1.6; margin-bottom: 25px;">
+                        Treine lançamentos de granada! Clique e arraste para trás na tela do jogo para ajustar força e ângulo (estilo estilingue). Solte para arremessar.<br>
+                        Desvie dos obstáculos e tente detonar o mais próximo possível do centro do alvo verde. São 5 arremessos!
+                    </p>
+                    <button onclick="startGrenadeGame()" style="background: #a855f7; color: white; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 1.1em; cursor: pointer; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);">
+                        INICIAR TREINO
+                    </button>
+                </div>
+
+                <!-- Playground (Canvas) -->
+                <div id="grenadeTrainerPlayground" style="display: none;">
+                    <div class="aim-stats-header" style="justify-content: space-between; margin-bottom: 10px;">
+                        <div class="aim-stat-box" style="flex: 1;">
+                            <span class="aim-stat-label">Lançamentos</span>
+                            <span id="grenadeLaunchCount" class="aim-stat-value" style="color: #00ffff;">1 / 5</span>
+                        </div>
+                        <div class="aim-stat-box" style="flex: 1;">
+                            <span class="aim-stat-label">Última Distância</span>
+                            <span id="grenadeLastDist" class="aim-stat-value" style="color: #00ff99;">0 m</span>
+                        </div>
+                        <div class="aim-stat-box" style="flex: 1;">
+                            <span class="aim-stat-label">Pontos Totais</span>
+                            <span id="grenadeLiveScore" class="aim-stat-value" style="color: #ffaa00;">0 pts</span>
+                        </div>
+                    </div>
+
+                    <!-- Canvas do Jogo -->
+                    <div style="position: relative; width: 100%; border: 2px solid #30363d; border-radius: 8px; overflow: hidden; background: radial-gradient(circle, #151c2c 0%, #0c101b 100%); box-shadow: inset 0 0 20px rgba(0,0,0,0.8);">
+                        <canvas id="grenadeCanvas" width="600" height="380" style="display: block; width: 100%; height: 380px; cursor: crosshair;"></canvas>
+                        <!-- Overlay de instrução rápida de puxar -->
+                        <div id="grenadeInstructionOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.45); pointer-events: none; transition: opacity 0.3s; flex-direction: column; text-align: center; padding: 20px;">
+                            <i class="fas fa-hand-pointer" style="font-size: 2.5em; color: #ffaa00; margin-bottom: 12px; animation: bounce 1.5s infinite;"></i>
+                            <span style="color: white; font-weight: bold; font-size: 1.1em; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">CLIQUE E ARRASTE NA TELA PARA MIRAR</span>
+                            <span style="color: #ccc; font-size: 0.85em; margin-top: 5px;">Solte para lançar a granada</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tela de Fim de Jogo -->
+                <div id="grenadeGameOver" style="display: none; text-align: center;">
+                    <div style="font-size: 3em; color: #ffaa00; margin-bottom: 10px; text-shadow: 0 0 15px rgba(255, 170, 0, 0.4);">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h3 style="color: white; margin: 0 0 5px 0; font-size: 1.5em;">Treino Concluído!</h3>
+                    <p style="color: #888; font-size: 0.9em; margin: 0 0 20px 0;">Veja seu desempenho no lançamento:</p>
+
+                    <div class="aim-results-grid">
+                        <div class="aim-result-card" style="grid-column: span 2;">
+                            <span class="aim-result-label">Pontuação Total</span>
+                            <span class="aim-result-value" id="grenadeEndScore" style="color: #00ff99; font-size: 1.8em;">0 pts</span>
+                        </div>
+                        <div class="aim-result-card">
+                            <span class="aim-result-label">Melhor Lançamento</span>
+                            <span class="aim-result-value" id="grenadeBestLaunch" style="color: #00ffff;">0 pts</span>
+                        </div>
+                        <div class="aim-result-card">
+                            <span class="aim-result-label">Distância Média</span>
+                            <span class="aim-result-value" id="grenadeAvgDist" style="color: #eee;">0 m</span>
+                        </div>
+                    </div>
+
+                    <div id="newGrenadeHighScoreFlash" class="new-highscore-flash-msg" style="display: none;">
+                        ★ NOVO RECORDE PESSOAL! ★
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 25px;">
+                        <button onclick="startGrenadeGame()" style="flex: 1; background: #a855f7; color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);">
                             Jogar Novamente
                         </button>
                         <button onclick="showMinigamesMenu()" style="flex: 1; background: #333; border: 1px solid #444; color: #ccc; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none;">

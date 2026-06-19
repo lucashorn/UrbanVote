@@ -42,7 +42,8 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS users
                  (username TEXT PRIMARY KEY, password_hash TEXT, player_name TEXT, session_token TEXT, 
                   aim_highscore INTEGER DEFAULT 0, reaction_highscore INTEGER DEFAULT 0, 
-                  spray_highscore INTEGER DEFAULT 0, fof_highscore INTEGER DEFAULT 0)''')
+                  spray_highscore INTEGER DEFAULT 0, fof_highscore INTEGER DEFAULT 0,
+                  grenade_highscore INTEGER DEFAULT 0)''')
     try:
         c.execute("ALTER TABLE matches ADD COLUMN duration REAL DEFAULT 0.0;")
     except Exception:
@@ -61,6 +62,10 @@ def init_db():
         pass
     try:
         c.execute("ALTER TABLE users ADD COLUMN fof_highscore INTEGER DEFAULT 0;")
+    except Exception:
+        pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN grenade_highscore INTEGER DEFAULT 0;")
     except Exception:
         pass
     conn.commit()
@@ -1281,16 +1286,18 @@ class VoteServer(SimpleHTTPRequestHandler):
                 reaction_highscore = 0
                 spray_highscore = 0
                 fof_highscore = 0
+                grenade_highscore = 0
                 try:
                     conn = sqlite3.connect(DB_FILE)
                     c = conn.cursor()
-                    c.execute("SELECT aim_highscore, reaction_highscore, spray_highscore, fof_highscore FROM users WHERE player_name = ?", (clean_name(player_name),))
+                    c.execute("SELECT aim_highscore, reaction_highscore, spray_highscore, fof_highscore, grenade_highscore FROM users WHERE player_name = ?", (clean_name(player_name),))
                     res = c.fetchone()
                     if res:
                         aim_highscore = res[0] or 0
                         reaction_highscore = res[1] or 0
                         spray_highscore = res[2] or 0
                         fof_highscore = res[3] or 0
+                        grenade_highscore = res[4] or 0
                     conn.close()
                 except Exception as e:
                     print("Erro ao buscar minigames highscores:", e)
@@ -1317,7 +1324,8 @@ class VoteServer(SimpleHTTPRequestHandler):
                     "aimHighscore": aim_highscore,
                     "reactionHighscore": reaction_highscore,
                     "sprayHighscore": spray_highscore,
-                    "fofHighscore": fof_highscore
+                    "fofHighscore": fof_highscore,
+                    "grenadeHighscore": grenade_highscore
                 }
             self.send_response(200)
             self.end_cors()
@@ -1711,7 +1719,7 @@ class VoteServer(SimpleHTTPRequestHandler):
                 game_type = data.get("game_type", "").strip()
                 highscore = int(data.get("highscore", 0))
                 
-                if game_type not in ["aim", "reaction", "spray", "fof"]:
+                if game_type not in ["aim", "reaction", "spray", "fof", "grenade"]:
                     self.send_response(400)
                     self.end_cors()
                     self.end_headers()
