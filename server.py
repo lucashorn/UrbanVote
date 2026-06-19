@@ -1080,12 +1080,24 @@ class VoteServer(SimpleHTTPRequestHandler):
             with stats_lock:
                 stats_to_use = global_stats.get(period, global_stats["all"])
                 players = set(stats_to_use["kills"]) | set(stats_to_use["deaths"])
+                
+                # Inclui jogadores com contas cadastradas mesmo que nao estejam nos logs de kills/deaths
+                try:
+                    conn = sqlite3.connect(DB_FILE)
+                    c = conn.cursor()
+                    c.execute("SELECT DISTINCT player_name FROM users WHERE player_name IS NOT NULL AND player_name != ''")
+                    for row in c.fetchall():
+                        players.add(row[0])
+                    conn.close()
+                except Exception as e:
+                    print("Erro ao carregar jogadores cadastrados para comparacao:", e)
+                
                 result = []
                 for p in players:
-                    k = stats_to_use["kills"].get(p, 0)
-                    d = stats_to_use["deaths"].get(p, 0)
+                    k = stats_to_use["kills"].get(p, 0) if "kills" in stats_to_use else 0
+                    d = stats_to_use["deaths"].get(p, 0) if "deaths" in stats_to_use else 0
                     top_weapon = ""
-                    weapons = stats_to_use["weapons"].get(p, {})
+                    weapons = stats_to_use["weapons"].get(p, {}) if "weapons" in stats_to_use else {}
                     if weapons:
                         top_weapon = max(weapons, key=weapons.get).replace("UT_MOD_", "")
                     

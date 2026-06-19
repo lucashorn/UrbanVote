@@ -1283,14 +1283,24 @@ let activeProfileData = null;
 function resetComparisonMode() {
     const selectorContainer = document.getElementById("compareSelectorContainer");
     const compareBtn = document.getElementById("profileCompareBtn");
+    const compareMeBtn = document.getElementById("profileCompareMeBtn");
     const closeBtn = document.getElementById("closeCompareBtn");
     const compLayout = document.getElementById("profileComparisonLayout");
     const normalLayout = document.querySelector(".profile-body-layout");
     
     if (selectorContainer) selectorContainer.style.display = "none";
     if (compareBtn) {
-        compareBtn.style.display = "flex";
+        compareBtn.style.display = "inline-flex";
         compareBtn.disabled = false;
+    }
+    if (compareMeBtn) {
+        const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+        const currentProfileName = activeProfileData ? activeProfileData.player : "";
+        if (auth && auth.player_name && auth.player_name !== currentProfileName) {
+            compareMeBtn.style.display = "inline-flex";
+        } else {
+            compareMeBtn.style.display = "none";
+        }
     }
     if (closeBtn) closeBtn.style.display = "none";
     if (compLayout) {
@@ -1604,12 +1614,14 @@ function renderComparison(playerA, playerB) {
 
 function initCompareEvents() {
     const compareBtn = document.getElementById("profileCompareBtn");
+    const compareMeBtn = document.getElementById("profileCompareMeBtn");
     const selectEl = document.getElementById("comparePlayerSelect");
     const closeBtn = document.getElementById("closeCompareBtn");
     
     if (compareBtn) {
         compareBtn.onclick = async () => {
             compareBtn.style.display = "none";
+            if (compareMeBtn) compareMeBtn.style.display = "none";
             document.getElementById("compareSelectorContainer").style.display = "flex";
             if (closeBtn) closeBtn.style.display = "inline-block";
             
@@ -1631,6 +1643,31 @@ function initCompareEvents() {
                 } catch (e) {
                     console.error("Erro ao carregar jogadores", e);
                 }
+            }
+        };
+    }
+    
+    if (compareMeBtn) {
+        compareMeBtn.onclick = async () => {
+            const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+            if (!auth || !auth.player_name) return;
+            
+            compareBtn.style.display = "none";
+            compareMeBtn.style.display = "none";
+            if (closeBtn) closeBtn.style.display = "inline-block";
+            
+            try {
+                const normalLayout = document.querySelector(".profile-body-layout");
+                if (normalLayout) normalLayout.style.display = "none";
+                
+                const res = await fetch(`${API_URL}/profile?player=${encodeURIComponent(auth.player_name)}`);
+                const opponentData = await res.json();
+                
+                if (activeProfileData) {
+                    renderComparison(activeProfileData, opponentData);
+                }
+            } catch (e) {
+                console.error("Erro ao comparar comigo", e);
             }
         };
     }
@@ -2161,6 +2198,17 @@ async function openProfile(playerName) {
         
         const compareBtn = document.getElementById("profileCompareBtn");
         if (compareBtn) compareBtn.disabled = false;
+
+        const compareMeBtn = document.getElementById("profileCompareMeBtn");
+        if (compareMeBtn) {
+            const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+            if (auth && auth.player_name && auth.player_name !== playerName) {
+                compareMeBtn.style.display = "inline-flex";
+                compareMeBtn.disabled = false;
+            } else {
+                compareMeBtn.style.display = "none";
+            }
+        }
 
     } catch (e) {
         console.error(e);
