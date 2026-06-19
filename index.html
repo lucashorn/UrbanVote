@@ -538,7 +538,37 @@
                             reflexos, precisão e agilidade clicando em alvos em movimento.</p>
                         <div
                             style="background: rgba(168, 85, 247, 0.05); border: 1px dashed #a855f7; border-radius: 6px; padding: 8px; text-align: center; font-size: 0.85em; color: #d8b4fe;">
-                            Recorde Máximo: <span id="aimTrainerHighScore">0</span> pts
+                            Recorde: <span id="aimTrainerHighScore">0</span> pts
+                        </div>
+                    </div>
+                    <div class="minigame-card" onclick="startReactionTrainerMenu()">
+                        <i class="fas fa-bolt"
+                            style="font-size: 2.5em; color: #ffaa00; margin-bottom: 12px; display: block; text-align: center;"></i>
+                        <h3 style="color: #eee; margin: 0 0 8px 0; text-align: center;">Teste de Reação</h3>
+                        <p style="color: #aaa; font-size: 0.85em; line-height: 1.4; margin: 0 0 12px 0;">Meça seus reflexos visuais. Aguarde o flash de cor verde e reaja o mais rápido possível.</p>
+                        <div
+                            style="background: rgba(168, 85, 247, 0.05); border: 1px dashed #a855f7; border-radius: 6px; padding: 8px; text-align: center; font-size: 0.85em; color: #d8b4fe;">
+                            Recorde: <span id="reactionHighScore">0</span> ms
+                        </div>
+                    </div>
+                    <div class="minigame-card" onclick="startSprayTrainerMenu()">
+                        <i class="fas fa-bullseye"
+                            style="font-size: 2.5em; color: #00ffcc; margin-bottom: 12px; display: block; text-align: center;"></i>
+                        <h3 style="color: #eee; margin: 0 0 8px 0; text-align: center;">Controle de Recuo</h3>
+                        <p style="color: #aaa; font-size: 0.85em; line-height: 1.4; margin: 0 0 12px 0;">Controle o recuo ("spray") da arma compensando o movimento do mouse para manter os tiros no centro.</p>
+                        <div
+                            style="background: rgba(168, 85, 247, 0.05); border: 1px dashed #a855f7; border-radius: 6px; padding: 8px; text-align: center; font-size: 0.85em; color: #d8b4fe;">
+                            Recorde: <span id="sprayHighScore">0</span>%
+                        </div>
+                    </div>
+                    <div class="minigame-card" onclick="startFofTrainerMenu()">
+                        <i class="fas fa-user-ninja"
+                            style="font-size: 2.5em; color: #00ff99; margin-bottom: 12px; display: block; text-align: center;"></i>
+                        <h3 style="color: #eee; margin: 0 0 8px 0; text-align: center;">Amigo ou Inimigo</h3>
+                        <p style="color: #aaa; font-size: 0.85em; line-height: 1.4; margin: 0 0 12px 0;">Elimine os alvos vermelhos (inimigos) e evite os alvos azuis (aliados) dentro do tempo limite.</p>
+                        <div
+                            style="background: rgba(168, 85, 247, 0.05); border: 1px dashed #a855f7; border-radius: 6px; padding: 8px; text-align: center; font-size: 0.85em; color: #d8b4fe;">
+                            Recorde: <span id="fofHighScore">0</span> pts
                         </div>
                     </div>
                 </div>
@@ -647,13 +677,232 @@
                         ★ NOVO RECORDE PESSOAL! ★
                     </div>
 
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tela de Jogo do Teste de Reação -->
+            <div id="reactionTrainerGame" style="display: none;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+                    <button onclick="showMinigamesMenu()" style="background: transparent; border: 1px solid #555; color: #ccc; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em;">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                    <h3 style="margin: 0; color: #ffaa00; text-shadow: 0 0 5px rgba(255, 170, 0, 0.3);"><i class="fas fa-bolt"></i> Teste de Reação</h3>
+                    <div style="font-size: 0.85em; color: #aaa;">
+                        Recorde: <span id="reactionGameHighScore" style="color: #ffaa00; font-weight: bold;">0</span> ms
+                    </div>
+                </div>
+
+                <!-- Painel do Jogo Ativo -->
+                <div id="reactionTrainerPlayground">
+                    <div class="aim-stats-header" style="justify-content: space-between;">
+                        <div class="aim-stat-box" style="flex: 1;">
+                            <span class="aim-stat-label">Tentativa</span>
+                            <span id="reactionAttempt" class="aim-stat-value" style="color: #00ffff;">1 / 5</span>
+                        </div>
+                        <div class="aim-stat-box" style="flex: 1;">
+                            <span class="aim-stat-label">Último Tempo</span>
+                            <span id="reactionLastTime" class="aim-stat-value" style="color: #00ff99;">0 ms</span>
+                        </div>
+                        <div class="aim-stat-box" style="flex: 1;">
+                            <span class="aim-stat-label">Média</span>
+                            <span id="reactionAverageTime" class="aim-stat-value" style="color: #ffaa00;">0 ms</span>
+                        </div>
+                    </div>
+
+                    <!-- Área de Click do Teste de Reação -->
+                    <div id="reactionArea" style="width: 100%; height: 380px; background: #ea580c; border: 2px solid #30363d; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; user-select: none; transition: background 0.15s; text-align: center; padding: 20px;">
+                        <span id="reactionInstruction" style="font-size: 1.5em; font-weight: bold; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Clique para Começar</span>
+                        <span id="reactionSubInstruction" style="font-size: 0.9em; color: rgba(255,255,255,0.7); margin-top: 10px;">Clique na tela vermelha quando ela piscar em verde!</span>
+                    </div>
+                </div>
+
+                <!-- Tela de Fim de Jogo -->
+                <div id="reactionGameOver" style="display: none; text-align: center;">
+                    <div style="font-size: 3em; color: #ffaa00; margin-bottom: 10px; text-shadow: 0 0 15px rgba(255, 170, 0, 0.4);">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h3 style="color: white; margin: 0 0 5px 0; font-size: 1.5em;">Teste Concluído!</h3>
+                    <p style="color: #888; font-size: 0.9em; margin: 0 0 20px 0;">Média final do seu tempo de reação:</p>
+
+                    <div style="background: #161b22; border: 1px solid #30363d; padding: 20px; border-radius: 8px; display: inline-block; min-width: 200px; margin-bottom: 20px;">
+                        <span style="font-size: 0.9em; color: #888; display: block; margin-bottom: 5px;">Média de Reação</span>
+                        <span id="reactionEndAverage" style="font-size: 2.2em; font-weight: bold; color: #00ff99;">0 ms</span>
+                    </div>
+
+                    <div id="newReactionHighScoreFlash" class="new-highscore-flash-msg" style="display: none;">
+                        ★ NOVO RECORDE PESSOAL! ★
+                    </div>
+
                     <div style="display: flex; gap: 10px; margin-top: 25px;">
-                        <button onclick="restartAimTrainer()"
-                            style="flex: 1; background: #a855f7; color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2); border: none;">
+                        <button onclick="startReactionTrainer()" style="flex: 1; background: #a855f7; color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);">
                             Jogar Novamente
                         </button>
-                        <button onclick="showMinigamesMenu()"
-                            style="flex: 1; background: #333; border: 1px solid #444; color: #ccc; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none;">
+                        <button onclick="showMinigamesMenu()" style="flex: 1; background: #333; border: 1px solid #444; color: #ccc; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none;">
+                            Menu Principal
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tela de Jogo do Controle de Recuo -->
+            <div id="sprayTrainerGame" style="display: none;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+                    <button onclick="showMinigamesMenu()" style="background: transparent; border: 1px solid #555; color: #ccc; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em;">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                    <h3 style="margin: 0; color: #00ffcc; text-shadow: 0 0 5px rgba(0, 255, 204, 0.3);"><i class="fas fa-bullseye"></i> Controle de Recuo</h3>
+                    <div style="font-size: 0.85em; color: #aaa;">
+                        Recorde: <span id="sprayGameHighScore" style="color: #ffaa00; font-weight: bold;">0</span>%
+                    </div>
+                </div>
+
+                <!-- Painel do Jogo Ativo -->
+                <div id="sprayTrainerPlayground">
+                    <div class="aim-stats-header">
+                        <div class="aim-stat-box" style="flex: 1;">
+                            <span class="aim-stat-label">Precisão</span>
+                            <span id="sprayLiveAccuracy" class="aim-stat-value" style="color: #00ffcc;">100%</span>
+                        </div>
+                        <div class="aim-stat-box" style="flex: 1;">
+                            <span class="aim-stat-label">Munição</span>
+                            <span id="sprayLiveMags" class="aim-stat-value" style="color: #ffaa00;">30 / 30</span>
+                        </div>
+                    </div>
+
+                    <!-- Target Area for Recoil Spray -->
+                    <div id="sprayTargetArea" class="aim-target-area" style="position: relative; background: radial-gradient(circle, #1a2235 0%, #0d1220 100%);">
+                        <!-- Bullseye circles in CSS -->
+                        <div style="position: absolute; top: 50%; left: 50%; width: 180px; height: 180px; border: 2px dashed rgba(255,255,255,0.07); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none;"></div>
+                        <div style="position: absolute; top: 50%; left: 50%; width: 100px; height: 100px; border: 2px dashed rgba(255,255,255,0.15); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none;"></div>
+                        <div style="position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; background: rgba(0, 255, 204, 0.2); border: 2px solid #00ffcc; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none;"></div>
+                        
+                        <!-- Instruction overlays -->
+                        <div id="sprayInstructionOverlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; z-index: 10;">
+                            <span style="font-size: 1.4em; font-weight: bold; color: white; margin-bottom: 8px;">CLIQUE E SEGURE</span>
+                            <span style="font-size: 0.9em; color: #ccc; max-width: 380px; line-height: 1.4;">Segure o botão esquerdo do mouse para disparar a rajada. Arraste o mouse para baixo e para os lados para compensar a subida e manter a mira no ponto azul!</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tela de Fim de Jogo -->
+                <div id="sprayGameOver" style="display: none; text-align: center;">
+                    <div style="font-size: 3em; color: #ffaa00; margin-bottom: 10px; text-shadow: 0 0 15px rgba(255, 170, 0, 0.4);">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h3 style="color: white; margin: 0 0 5px 0; font-size: 1.5em;">Recuo Controlado!</h3>
+                    <p style="color: #888; font-size: 0.9em; margin: 0 0 20px 0;">Resultado do controle de spray:</p>
+
+                    <div class="aim-results-grid">
+                        <div class="aim-result-card" style="grid-column: span 2;">
+                            <span class="aim-result-label">Precisão do Controle</span>
+                            <span class="aim-result-value" id="sprayEndAccuracy" style="color: #00ffcc; font-size: 2em;">0%</span>
+                        </div>
+                        <div class="aim-result-card">
+                            <span class="aim-result-label">No Alvo Centro</span>
+                            <span class="aim-result-value" id="sprayEndCenterHits" style="color: #00ff99;">0 / 30</span>
+                        </div>
+                        <div class="aim-result-card">
+                            <span class="aim-result-label">Pontuação Estimada</span>
+                            <span class="aim-result-value" id="sprayEndScore" style="color: #eee;">0 pts</span>
+                        </div>
+                    </div>
+
+                    <div id="newSprayHighScoreFlash" class="new-highscore-flash-msg" style="display: none;">
+                        ★ NOVO RECORDE PESSOAL! ★
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 25px;">
+                        <button onclick="startSprayTrainer()" style="flex: 1; background: #a855f7; color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);">
+                            Jogar Novamente
+                        </button>
+                        <button onclick="showMinigamesMenu()" style="flex: 1; background: #333; border: 1px solid #444; color: #ccc; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none;">
+                            Menu Principal
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tela de Jogo do Amigo ou Inimigo -->
+            <div id="fofTrainerGame" style="display: none;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+                    <button onclick="showMinigamesMenu()" style="background: transparent; border: 1px solid #555; color: #ccc; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85em;">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </button>
+                    <h3 style="margin: 0; color: #00ff99; text-shadow: 0 0 5px rgba(0, 255, 153, 0.3);"><i class="fas fa-user-ninja"></i> Amigo ou Inimigo</h3>
+                    <div style="font-size: 0.85em; color: #aaa;">
+                        Recorde: <span id="fofGameHighScore" style="color: #ffaa00; font-weight: bold;">0</span> pts
+                    </div>
+                </div>
+
+                <!-- Tela de Setup -->
+                <div id="fofTrainerSetup">
+                    <div style="margin-bottom: 25px; text-align: center; padding: 10px;">
+                        <p style="color: #ccc; font-size: 0.95em; line-height: 1.5; margin-bottom: 15px;">
+                            Alvos <span style="color: #ff3333; font-weight: bold;">Vermelhos</span> são <span style="color: #ff3333; font-weight: bold;">INIMIGOS</span> (<span style="color: #00ff99;">+100 pts</span>).<br>
+                            Alvos <span style="color: #2563eb; font-weight: bold;">Azuis</span> são <span style="color: #2563eb; font-weight: bold;">ALIADOS</span> (<span style="color: #ff3333;">-150 pts</span>).<br>
+                            Não atire em aliados e não deixe inimigos desaparecerem!
+                        </p>
+                    </div>
+                    <button onclick="startFofGame()" style="background: #a855f7; color: white; width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 1.1em; cursor: pointer; text-shadow: 0 1px 3px rgba(0,0,0,0.5); box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);">
+                        INICIAR MISSÃO
+                    </button>
+                </div>
+
+                <!-- Painel do Jogo Ativo -->
+                <div id="fofTrainerPlayground" style="display: none;">
+                    <div class="aim-stats-header">
+                        <div class="aim-stat-box" style="flex: 1;">
+                            <span class="aim-stat-label">Pontos</span>
+                            <span id="fofLiveScore" class="aim-stat-value" style="color: #00ff99;">0</span>
+                        </div>
+                        <div class="aim-stat-box" style="flex: 1;">
+                            <span class="aim-stat-label">Tempo</span>
+                            <span id="fofLiveTimer" class="aim-stat-value" style="color: #ffaa00;">30s</span>
+                        </div>
+                        <div class="aim-stat-box" style="flex: 1;">
+                            <span class="aim-stat-label">Acertos</span>
+                            <span id="fofLiveAccuracy" class="aim-stat-value" style="color: #00ffff;">0 / 0</span>
+                        </div>
+                    </div>
+
+                    <div id="fofTargetArea" class="aim-target-area">
+                        <!-- Alvos dinâmicos criados via JS -->
+                    </div>
+                </div>
+
+                <!-- Tela de Fim de Jogo -->
+                <div id="fofGameOver" style="display: none; text-align: center;">
+                    <div style="font-size: 3em; color: #ffaa00; margin-bottom: 10px; text-shadow: 0 0 15px rgba(255, 170, 0, 0.4);">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h3 style="color: white; margin: 0 0 5px 0; font-size: 1.5em;">Missão Concluída!</h3>
+                    <p style="color: #888; font-size: 0.9em; margin: 0 0 20px 0;">Desempenho da operação:</p>
+
+                    <div class="aim-results-grid">
+                        <div class="aim-result-card" style="grid-column: span 2;">
+                            <span class="aim-result-label">Pontuação Final</span>
+                            <span class="aim-result-value" id="fofEndScore" style="color: #00ff99; font-size: 2em;">0</span>
+                        </div>
+                        <div class="aim-result-card">
+                            <span class="aim-result-label">Inimigos Eliminados</span>
+                            <span class="aim-result-value" id="fofEndEnemiesKilled" style="color: #00ff99;">0</span>
+                        </div>
+                        <div class="aim-result-card">
+                            <span class="aim-result-label">Aliados Atingidos</span>
+                            <span class="aim-result-value" id="fofEndFriendsHit" style="color: #ff3333;">0</span>
+                        </div>
+                    </div>
+
+                    <div id="newFofHighScoreFlash" class="new-highscore-flash-msg" style="display: none;">
+                        ★ NOVO RECORDE PESSOAL! ★
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-top: 25px;">
+                        <button onclick="startFofGame()" style="flex: 1; background: #a855f7; color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);">
+                            Jogar Novamente
+                        </button>
+                        <button onclick="showMinigamesMenu()" style="flex: 1; background: #333; border: 1px solid #444; color: #ccc; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none;">
                             Menu Principal
                         </button>
                     </div>

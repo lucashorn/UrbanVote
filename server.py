@@ -40,13 +40,27 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS matches
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, map TEXT, date TEXT, mvp TEXT, kills INTEGER, scoreboard TEXT)''')
     c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (username TEXT PRIMARY KEY, password_hash TEXT, player_name TEXT, session_token TEXT, aim_highscore INTEGER DEFAULT 0)''')
+                 (username TEXT PRIMARY KEY, password_hash TEXT, player_name TEXT, session_token TEXT, 
+                  aim_highscore INTEGER DEFAULT 0, reaction_highscore INTEGER DEFAULT 0, 
+                  spray_highscore INTEGER DEFAULT 0, fof_highscore INTEGER DEFAULT 0)''')
     try:
         c.execute("ALTER TABLE matches ADD COLUMN duration REAL DEFAULT 0.0;")
     except Exception:
         pass
     try:
         c.execute("ALTER TABLE users ADD COLUMN aim_highscore INTEGER DEFAULT 0;")
+    except Exception:
+        pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN reaction_highscore INTEGER DEFAULT 0;")
+    except Exception:
+        pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN spray_highscore INTEGER DEFAULT 0;")
+    except Exception:
+        pass
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN fof_highscore INTEGER DEFAULT 0;")
     except Exception:
         pass
     conn.commit()
@@ -1264,16 +1278,22 @@ class VoteServer(SimpleHTTPRequestHandler):
                 avatar_url, avatar_orig = get_player_avatars(player_name)
 
                 aim_highscore = 0
+                reaction_highscore = 0
+                spray_highscore = 0
+                fof_highscore = 0
                 try:
                     conn = sqlite3.connect(DB_FILE)
                     c = conn.cursor()
-                    c.execute("SELECT aim_highscore FROM users WHERE player_name = ?", (clean_name(player_name),))
+                    c.execute("SELECT aim_highscore, reaction_highscore, spray_highscore, fof_highscore FROM users WHERE player_name = ?", (clean_name(player_name),))
                     res = c.fetchone()
                     if res:
-                        aim_highscore = res[0]
+                        aim_highscore = res[0] or 0
+                        reaction_highscore = res[1] or 0
+                        spray_highscore = res[2] or 0
+                        fof_highscore = res[3] or 0
                     conn.close()
                 except Exception as e:
-                    print("Erro ao buscar aim_highscore:", e)
+                    print("Erro ao buscar minigames highscores:", e)
 
                 data = {
                     "player": player_name,
@@ -1294,7 +1314,10 @@ class VoteServer(SimpleHTTPRequestHandler):
                     "achievements": achievements_data,
                     "hitLocations": hit_locations_pct,
                     "totalHits": total_located_hits,
-                    "aimHighscore": aim_highscore
+                    "aimHighscore": aim_highscore,
+                    "reactionHighscore": reaction_highscore,
+                    "sprayHighscore": spray_highscore,
+                    "fofHighscore": fof_highscore
                 }
             self.send_response(200)
             self.end_cors()
@@ -1672,6 +1695,66 @@ class VoteServer(SimpleHTTPRequestHandler):
                 self.end_cors()
                 self.end_headers()
                 self.wfile.write(json.dumps({"status": "ok", "aim_highscore": current_highscore}).encode("utf-8"))
+            except Exception as e:
+                self.send_response(500)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(str(e).encode("utf-8"))
+            return
+
+        if self.path == "/update-minigame-highscore":
+            try:
+                content_length = int(self.headers["Content-Length"])
+                data = json.loads(self.rfile.read(content_length).decode("utf-8"))
+                username = data.get("username", "").strip()
+                session_token = data.get("session_token", "").strip()
+                game_type = data.get("game_type", "").strip()
+                highscore = int(data.get("highscore", 0))
+                
+                if game_type not in ["aim", "reaction", "spray", "fof"]:
+                    self.send_response(400)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Tipo de jogo invalido.")
+                    return
+                
+                cleaned_user = clean_name(username)
+                col_name = f"{game_type}_highscore"
+                
+                conn = sqlite3.connect(DB_FILE)
+                c = conn.cursor()
+                c.execute(f"SELECT session_token, {col_name} FROM users WHERE username = ?", (cleaned_user,))
+                res = c.fetchone()
+                
+                if not res or res[0] != session_token:
+                    conn.close()
+                    self.send_response(401)
+                    self.end_cors()
+                    self.end_headers()
+                    self.wfile.write(b"Sessao expirada.")
+                    return
+                
+                current_highscore = res[1] or 0
+                updated = False
+                
+                if game_type == "reaction":
+                    if highscore > 0 and (current_highscore == 0 or highscore < current_highscore):
+                        c.execute(f"UPDATE users SET {col_name} = ? WHERE username = ?", (highscore, cleaned_user))
+                        conn.commit()
+                        current_highscore = highscore
+                        updated = True
+                else:
+                    if highscore > current_highscore:
+                        c.execute(f"UPDATE users SET {col_name} = ? WHERE username = ?", (highscore, cleaned_user))
+                        conn.commit()
+                        current_highscore = highscore
+                        updated = True
+                
+                conn.close()
+                self.send_response(200)
+                self.end_cors()
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "ok", "highscore": current_highscore, "updated": updated}).encode("utf-8"))
             except Exception as e:
                 self.send_response(500)
                 self.end_cors()
