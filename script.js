@@ -1296,7 +1296,8 @@ function resetComparisonMode() {
     if (compareMeBtn) {
         const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
         const currentProfileName = activeProfileData ? activeProfileData.player : "";
-        if (auth && auth.player_name && auth.player_name !== currentProfileName) {
+        const myIdentifier = auth ? (auth.player_name || auth.username) : null;
+        if (myIdentifier && myIdentifier !== currentProfileName) {
             compareMeBtn.style.display = "inline-flex";
         } else {
             compareMeBtn.style.display = "none";
@@ -1650,7 +1651,8 @@ function initCompareEvents() {
     if (compareMeBtn) {
         compareMeBtn.onclick = async () => {
             const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
-            if (!auth || !auth.player_name) return;
+            const myIdentifier = auth ? (auth.player_name || auth.username) : null;
+            if (!myIdentifier) return;
             
             compareBtn.style.display = "none";
             compareMeBtn.style.display = "none";
@@ -1660,7 +1662,7 @@ function initCompareEvents() {
                 const normalLayout = document.querySelector(".profile-body-layout");
                 if (normalLayout) normalLayout.style.display = "none";
                 
-                const res = await fetch(`${API_URL}/profile?player=${encodeURIComponent(auth.player_name)}`);
+                const res = await fetch(`${API_URL}/profile?player=${encodeURIComponent(myIdentifier)}`);
                 const opponentData = await res.json();
                 
                 if (activeProfileData) {
@@ -2202,7 +2204,8 @@ async function openProfile(playerName) {
         const compareMeBtn = document.getElementById("profileCompareMeBtn");
         if (compareMeBtn) {
             const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
-            if (auth && auth.player_name && auth.player_name !== playerName) {
+            const myIdentifier = auth ? (auth.player_name || auth.username) : null;
+            if (myIdentifier && myIdentifier !== playerName) {
                 compareMeBtn.style.display = "inline-flex";
                 compareMeBtn.disabled = false;
             } else {
