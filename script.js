@@ -2623,25 +2623,26 @@ function openAccountMgmtModal() {
         linkedPlayerSection.innerHTML = `<p style="margin: 0; color: #00ff99; font-size: 0.9em;"><i class="fas fa-link"></i> Vinculado a: <strong>${auth.player_name}</strong></p>`;
         linkedActions.style.display = "block";
         unlinkedActions.style.display = "none";
-        
-        fetch(`${API_URL}/profile?player=${encodeURIComponent(auth.player_name)}`)
-            .then(res => res.json())
-            .then(data => {
-                const preview = document.getElementById("mgmtAvatarPreview");
-                if (data.avatar) {
-                    preview.src = data.avatar;
-                } else {
-                    preview.src = "img/default_avatar.png";
-                }
-            })
-            .catch(() => {
-                document.getElementById("mgmtAvatarPreview").src = "img/default_avatar.png";
-            });
     } else {
         linkedPlayerSection.innerHTML = `<p style="margin: 0; color: #ffaa00; font-size: 0.9em;"><i class="fas fa-exclamation-triangle"></i> Nenhum personagem vinculado</p>`;
         linkedActions.style.display = "none";
         unlinkedActions.style.display = "block";
     }
+
+    const activeName = auth.player_name || auth.username;
+    fetch(`${API_URL}/profile?player=${encodeURIComponent(activeName)}`)
+        .then(res => res.json())
+        .then(data => {
+            const preview = document.getElementById("mgmtAvatarPreview");
+            if (data.avatar) {
+                preview.src = data.avatar;
+            } else {
+                preview.src = "img/default_avatar.png";
+            }
+        })
+        .catch(() => {
+            document.getElementById("mgmtAvatarPreview").src = "img/default_avatar.png";
+        });
 }
 
 async function handleLinkCharacter() {
@@ -2830,14 +2831,17 @@ document.getElementById("cropConfirmBtn").onclick = () => {
 
 async function handleAvatarUploadSubmit(imgData, originalImgData) {
     const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
-    if (!auth || !auth.player_name) return;
+    if (!auth) return;
+    
+    const activeName = auth.player_name || auth.username;
+    if (!activeName) return;
     
     try {
         const res = await fetch(`${API_URL}/upload-avatar`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                name: auth.player_name,
+                name: activeName,
                 username: auth.username,
                 session_token: auth.session_token,
                 image: imgData,

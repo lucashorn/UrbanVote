@@ -194,12 +194,40 @@ def save_avatar(name, b64_cropped, b64_original=None):
             
         conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
+        
+        # Query old avatar files to delete them afterwards
+        c.execute("SELECT avatar_url, avatar_original_url FROM profiles WHERE name = ?", (clean,))
+        old_res = c.fetchone()
+        
+        # Ensure a record for name always exists
+        c.execute("INSERT OR IGNORE INTO profiles (name) VALUES (?)", (clean,))
+        
         if original_url:
             c.execute("UPDATE profiles SET avatar_url = ?, avatar_original_url = ? WHERE name = ?", (url, original_url, clean))
         else:
             c.execute("UPDATE profiles SET avatar_url = ? WHERE name = ?", (url, clean))
         conn.commit()
         conn.close()
+        
+        # Exclude/delete old avatar files if they exist
+        if old_res:
+            old_avatar, old_orig = old_res
+            if old_avatar and old_avatar.startswith("avatars/"):
+                old_path = os.path.join(AVATARS_DIR, os.path.basename(old_avatar))
+                if os.path.exists(old_path):
+                    try:
+                        os.remove(old_path)
+                        print(f"[DEBUG] Deleted old avatar: {old_path}")
+                    except Exception as ex:
+                        print("Erro ao excluir avatar antigo:", ex)
+            if old_orig and old_orig.startswith("avatars/"):
+                old_orig_path = os.path.join(AVATARS_DIR, os.path.basename(old_orig))
+                if os.path.exists(old_orig_path):
+                    try:
+                        os.remove(old_orig_path)
+                        print(f"[DEBUG] Deleted old original avatar: {old_orig_path}")
+                    except Exception as ex:
+                        print("Erro ao excluir avatar original antigo:", ex)
         return url
     except Exception as e:
         print("Erro ao salvar avatar:", e)
@@ -1855,8 +1883,14 @@ class VoteServer(SimpleHTTPRequestHandler):
                     res = c.fetchone()
                     conn.close()
                     
-                    if res and res[0] == session_token and res[1] == cleaned_name:
-                        authorized = True
+                    if res and res[0] == session_token:
+                        db_player = res[1]
+                        if db_player:
+                            if clean_name(db_player) == cleaned_name:
+                                authorized = True
+                        else:
+                            if cleaned_user == cleaned_name:
+                                authorized = True
                 
                 if not authorized and code:
                     if verify_auth_code(name, code):

@@ -102,19 +102,20 @@
                 <i class="fas fa-user"></i> Visualizar Meu Perfil
             </button>
 
-            <!-- Área de Ações do Personagem Vinculado (Avatar, Troca de Nome) -->
-            <div id="mgmtLinkedActions" style="display: none;">
-                <!-- Trocar Avatar -->
-                <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #333;">
-                    <h3 style="color: #eee; font-size: 1.1em; margin: 0 0 10px 0;"><i class="fas fa-image"></i> Foto de Perfil</h3>
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <img id="mgmtAvatarPreview" src="img/default_avatar.png" style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid #a855f7; object-fit: cover;">
-                        <div>
-                            <input type="file" id="mgmtAvatarInput" accept="image/*" style="display: none;">
-                            <button onclick="document.getElementById('mgmtAvatarInput').click()" class="setup-toggle-btn active" style="padding: 8px 12px; font-size: 0.85em;">Selecionar Nova Foto</button>
-                        </div>
+            <!-- Trocar Avatar (Disponível para todos os usuários logados) -->
+            <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #333;">
+                <h3 style="color: #eee; font-size: 1.1em; margin: 0 0 10px 0;"><i class="fas fa-image"></i> Foto de Perfil</h3>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <img id="mgmtAvatarPreview" src="img/default_avatar.png" style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid #a855f7; object-fit: cover;">
+                    <div>
+                        <input type="file" id="mgmtAvatarInput" accept="image/*" style="display: none;">
+                        <button onclick="document.getElementById('mgmtAvatarInput').click()" class="setup-toggle-btn active" style="padding: 8px 12px; font-size: 0.85em;">Selecionar Nova Foto</button>
                     </div>
                 </div>
+            </div>
+
+            <!-- Área de Ações do Personagem Vinculado (Troca de Nome) -->
+            <div id="mgmtLinkedActions" style="display: none;">
 
                 <!-- Alterar Nome do Personagem -->
                 <div>
