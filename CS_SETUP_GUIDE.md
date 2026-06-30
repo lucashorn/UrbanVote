@@ -147,4 +147,4 @@ Quando você quiser jogar mapas que não vêm com o jogo base (como versões com
    de_inferno
    de_mirage
    ```
-4. **Downloads Automáticos (FastDL):** Se os jogadores não tiverem o mapa, o jogo tentará baixar direto do servidor. Para mapas muito pesados, isso pode ser lento. Para resolver isso, recomenda-se configurar um FastDL usando um servidor Web (nginx/apache) e configurar a variável `sv_downloadurl "http://seu-site.com/cstrike"` no seu `server.cfg`.
+4. **Downloads Automáticos (FastDL):** Se os jogadores não tiverem o mapa, o jogo tentará baixar direto do servidor. Para mapas muito pesados, isso pode ser lento. Para resolver isso, recomenda-se configurar um FastDL usando um servidor Web (nginx/apache) e configurar a variável `sv_downloadurl "http://seu-site.com/cstrike"` no seu `server.cfg`. A pasta devera ter uma pasta maps, contendo o conteúdo de /var/docker/css-server/server/cstrike/maps/, apenas com os mapas personalizados.
