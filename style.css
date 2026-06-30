@@ -39,6 +39,31 @@ body {
     padding: 20px;
 }
 
+.nav-btn-ut {
+    position: absolute;
+    top: 30px;
+    left: 20px;
+    background: rgba(22, 27, 34, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #c9d1d9;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 99;
+}
+
+.nav-btn-ut:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
 header {
     text-align: center;
     margin-bottom: 30px;
@@ -807,7 +832,7 @@ table.dataTable tbody td {
     transition: background 0.2s;
     border: 1px solid transparent;
     min-width: 140px;
-}
+}words_5
 
 .custom-weapon-item img {
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
@@ -3269,6 +3294,168 @@ table.dataTable tbody td {
 .select2-container--default .select2-results__option[aria-selected=true] {
     background-color: rgba(255, 255, 255, 0.05) !important;
     color: #fff !important;
+}
+
+/* ─── Termo Terror Styles ─── */
+.termo-grid-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+}
+
+.termo-cell {
+    aspect-ratio: 1;
+    border: 2px solid #30363d;
+    background: transparent;
+    color: white;
+    font-size: 1.5em;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    user-select: none;
+    border-radius: 4px;
+    transition: transform 0.25s, background-color 0.25s, border-color 0.25s;
+}
+
+.termo-cell.pop {
+    animation: cellPop 0.15s ease-in-out;
+}
+
+.termo-cell.correct {
+    background-color: #22c55e !important;
+    border-color: #22c55e !important;
+}
+
+.termo-cell.present {
+    background-color: #eab308 !important;
+    border-color: #eab308 !important;
+}
+
+.termo-cell.absent {
+    background-color: #3a3f47 !important;
+    border-color: #3a3f47 !important;
+}
+
+.termo-cell.flip {
+    transform: rotateX(90deg);
+}
+
+.termo-cell.selected {
+    border-color: #00ffff !important;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+    animation: cellCursorBlink 1.2s infinite ease-in-out;
+}
+
+.termo-cell.clickable {
+    cursor: pointer;
+}
+
+@keyframes cellCursorBlink {
+    0%, 100% { border-color: #00ffff; box-shadow: 0 0 10px rgba(0, 255, 255, 0.4); }
+    50% { border-color: #008888; box-shadow: 0 0 4px rgba(0, 255, 255, 0.1); }
+}
+
+@keyframes cellPop {
+    0% { transform: scale(0.85); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1.0); }
+}
+
+.termo-grid-row.shake {
+    animation: rowShake 0.4s ease-in-out;
+}
+
+@keyframes rowShake {
+    0%, 100% { transform: translateX(0); }
+    15%, 45%, 75% { transform: translateX(-8px); }
+    30%, 60%, 90% { transform: translateX(8px); }
+}
+
+.termo-kbd-row {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+}
+
+.termo-key {
+    background: #2d3139;
+    color: #eee;
+    border: none;
+    border-radius: 4px;
+    padding: 12px 6px;
+    font-size: 0.85em;
+    font-weight: bold;
+    cursor: pointer;
+    flex: 1;
+    max-width: 44px;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    user-select: none;
+    transition: background 0.15s;
+}
+
+.termo-key.wide {
+    max-width: 65px;
+    font-size: 0.75em;
+}
+
+.termo-key:hover {
+    background: #3e4450;
+}
+
+.termo-key.correct {
+    background-color: #22c55e !important;
+    color: white;
+}
+
+.termo-key.present {
+    background-color: #eab308 !important;
+    color: white;
+}
+
+.termo-key.absent {
+    background-color: #161b22 !important;
+    color: #555;
+    cursor: default;
+}
+
+
+
+/* ─── Desarme a Bomba Styles ─── */
+.c4-key-btn {
+    background: #3c4f3c;
+    border: 2px solid #5a775a;
+    border-bottom: 5px solid #232e23;
+    color: #ff5500;
+    font-weight: bold;
+    font-size: 1.3em;
+    font-family: 'Courier New', Courier, monospace;
+    border-radius: 6px;
+    height: 50px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 0 4px rgba(255, 85, 0, 0.4);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+    transition: all 0.1s ease;
+    user-select: none;
+}
+
+.c4-key-btn:active, .c4-key-btn.active {
+    background: #00ff99 !important;
+    border-color: #55ffbb !important;
+    border-bottom: 2px solid #009955 !important;
+    color: #000 !important;
+    text-shadow: none !important;
+    transform: translateY(3px);
+    box-shadow: 0 0 15px rgba(0, 255, 153, 0.8) !important;
 }
 
 

@@ -1,0 +1,26 @@
+<!-- Modal de Admin -->
+<div id="adminModal" class="modal">
+    <div class="modal-content admin-modal">
+        <span class="close" id="adminClose">&times;</span>
+        <h2><i class="fas fa-lock"></i> Painel de Controle</h2>
+        <div id="adminAuth">
+            <label>Senha de Administração:</label>
+            <input type="password" id="adminPassword" placeholder="Senha do RCON">
+        </div>
+        <div id="adminActions" style="opacity: 0.5; pointer-events: none;">
+            <hr>
+            <div class="admin-row">
+                <input type="text" id="adminMapInput" placeholder="Nome do mapa (ex: ut4_abbey)">
+                <button id="adminMapBtn"><i class="fas fa-map"></i> Trocar Mapa</button>
+            </div>
+            <div class="admin-row">
+                <input type="text" id="adminKickInput" placeholder="ID ou Nome do jogador">
+                <button id="adminKickBtn" style="background:#ff4444"><i class="fas fa-user-slash"></i> Expulsar</button>
+            </div>
+        </div>
+        <div class="admin-row" style="margin-top: 15px;">
+            <input type="text" id="adminSayInput" placeholder="Mensagem para aparecer na tela">
+            <button id="adminSayBtn" style="background:#00ccff; color:#000"><i class="fas fa-bullhorn"></i> Anunciar</button>
+        </div>
+    </div>
+</div>

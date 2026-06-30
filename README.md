@@ -3,12 +3,15 @@
 Painel e sistema de votação para servidores dedicados de Urban Terror 4.3.
 O sistema permite que os jogadores votem no próximo mapa, modo de jogo, armas permitidas e configuração de fogo amigo, além de possuir um rastreador em tempo real de estatísticas (Kills/Deaths) extraídas diretamente dos logs do servidor de jogo.
 
+> **Novidade**: O painel agora também funciona como um centralizador para gerenciar seu servidor de **Counter-Strike: Source**. Para aprender a configurar o servidor de CS:S, instalar os mods (MetaMod/SourceMod) e integrá-lo ao painel, [leia o Guia de Setup do CS:S](CS_SETUP_GUIDE.md).
+
 ## Como Iniciar o Servidor Manualmente
 
 O backend é feito em Python e roda por padrão na porta `8085`. Para iniciá-lo manualmente no terminal, navegue até a pasta do projeto e execute:
 
 ```bash
 cd /var/www/html/urban
+pip install python-dotenv
 python3 server.py
 ```
 

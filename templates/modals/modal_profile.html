@@ -1,0 +1,151 @@
+<!-- Modal de Perfil Individual -->
+<div id="profileModal" class="modal" style="z-index: 3000;">
+    <div class="modal-content profile-modal">
+        <span class="close" id="profileClose">&times;</span>
+
+        <!-- Profile Header -->
+        <div class="profile-header">
+            <div class="profile-header-main" style="display: flex; align-items: center; gap: 16px; flex: 1;">
+                <i class="fas fa-user-circle" id="profileAvatarIcon" style="font-size: 4em; color: #ff3333;"></i>
+                <img id="profileAvatarImg" onclick="openAvatarZoom(this.dataset.original || this.src)" style="width:80px;height:80px;border-radius:50%;object-fit:cover;display:none;border:3px solid #ff3333;cursor:pointer;">
+                <h2 id="profileName" style="margin: 0; font-size: 1.4em; color: #eee;">Carregando...</h2>
+            </div>
+            <div class="profile-compare-controls" style="display: flex; align-items: center; gap: 10px;">
+                <button id="profileCompareBtn">
+                    <i class="fas fa-balance-scale"></i> Comparar com outro
+                </button>
+                <button id="profileCompareMeBtn" style="display: none;">
+                    <i class="fas fa-user-friends"></i> Comparar comigo
+                </button>
+                <div id="compareSelectorContainer" style="display: none; align-items: center; gap: 8px;">
+                    <span style="font-size: 0.85em; color: #888;">com</span>
+                    <select id="comparePlayerSelect" class="compare-select" style="width: 280px;" data-placeholder="Buscar jogador...">
+                        <option value="">Selecionar Jogador...</option>
+                    </select>
+                    <button id="closeCompareBtn" title="Fechar comparação">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3-column body -->
+        <div class="profile-body-layout">
+
+            <!-- COL 1: Stats + Relationships -->
+            <div class="profile-col profile-col-stats">
+                <div class="profile-stats">
+                    <div class="profile-card">
+                        <div class="profile-card-header"><i class="fas fa-crosshairs"></i>
+                            <h3>Kills</h3>
+                        </div>
+                        <div class="profile-card-body"><span class="profile-card-value" id="profileKills">-</span></div>
+                        <div class="profile-card-footer"></div>
+                    </div>
+                    <div class="profile-card">
+                        <div class="profile-card-header"><i class="fas fa-skull"></i>
+                            <h3>Mortes</h3>
+                        </div>
+                        <div class="profile-card-body"><span class="profile-card-value" id="profileDeaths">-</span></div>
+                        <div class="profile-card-footer"></div>
+                    </div>
+                    <div class="profile-card">
+                        <div class="profile-card-header"><i class="fas fa-balance-scale"></i>
+                            <h3>K/D</h3>
+                        </div>
+                        <div class="profile-card-body"><span class="profile-card-value" id="profileKD">-</span></div>
+                        <div class="profile-card-footer"></div>
+                    </div>
+                    <div class="profile-card">
+                        <div class="profile-card-header"><i class="fas fa-stopwatch"></i>
+                            <h3>Kills/min</h3>
+                        </div>
+                        <div class="profile-card-body"><span class="profile-card-value" id="profileKillsMin">-</span></div>
+                        <div class="profile-card-footer"></div>
+                    </div>
+                    <div class="profile-card">
+                        <div class="profile-card-header"><i class="fas fa-gun"></i>
+                            <h3>Melhor Arma</h3>
+                        </div>
+                        <div class="profile-card-body">
+                            <img id="profileWeaponImg" src="" style="max-width:70px;max-height:35px;display:none;">
+                        </div>
+                        <div class="profile-card-footer" id="profileWeapon">-</div>
+                    </div>
+                    <div class="profile-card">
+                        <div class="profile-card-header"><i class="fas fa-map-marked-alt"></i>
+                            <h3>Melhor Mapa</h3>
+                        </div>
+                        <div class="profile-card-body">
+                            <img id="profileBestMapImg" src="" style="width:70px;height:35px;border-radius:4px;object-fit:cover;display:none;border:1px solid rgba(255,51,51,0.3);">
+                        </div>
+                        <div class="profile-card-footer" id="profileBestMap">-</div>
+                    </div>
+                    <div class="profile-card">
+                        <div class="profile-card-header"><i class="fas fa-fire"></i>
+                            <h3>Maior Seq.</h3>
+                        </div>
+                        <div class="profile-card-body"><span class="profile-card-value" id="profileMaxStreak">-</span></div>
+                        <div class="profile-card-footer"></div>
+                    </div>
+                    <div class="profile-card">
+                        <div class="profile-card-header"><i class="fas fa-bullseye"></i>
+                            <h3>HS</h3>
+                        </div>
+                        <div class="profile-card-body"><span class="profile-card-value" id="profileHS">-</span></div>
+                        <div class="profile-card-footer"></div>
+                    </div>
+                </div>
+                <div class="profile-relationships">
+                    <div class="relationship-card victim-card">
+                        <h4>Vítima Favorita</h4>
+                        <p id="profileVictim">-</p>
+                        <small id="profileVictimKills">0 kills</small>
+                    </div>
+                    <div class="relationship-card nemesis-card">
+                        <h4>Nêmesis</h4>
+                        <p id="profileNemesis">-</p>
+                        <small id="profileNemesisKills">0 mortes</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COL 2: Body Heatmap -->
+            <div class="profile-col profile-col-heatmap">
+                <h4 class="profile-col-title"><i class="fas fa-crosshairs"></i> Mapa de Acertos</h4>
+                <div class="body-heatmap-inner"></div>
+                <div class="body-heatmap-legend" id="bodyHeatmapLegend"></div>
+                <p class="body-heatmap-empty" id="bodyHeatmapEmpty">Sem dados ainda</p>
+                <div id="bodyHeatmapTooltip" class="body-heatmap-tooltip" style="display:none;"></div>
+            </div>
+
+            <!-- COL 3: Achievements -->
+            <div class="profile-col profile-col-achievements">
+                <h4 class="profile-col-title"><i class="fas fa-medal"></i> Conquistas</h4>
+                <div class="achievements-grid" id="profileAchievements"></div>
+            </div>
+
+        </div><!-- end profile-body-layout -->
+
+        <!-- Comparison Layout (hidden by default) -->
+        <div id="profileComparisonLayout" class="profile-comparison-layout" style="display: none;">
+            <!-- Dynamically populated via JavaScript -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Zoom de Arma -->
+<div id="weaponZoomModal" class="modal" onclick="closeWeaponZoom()" style="display:none; z-index: 4000; background: rgba(0,0,0,0.9);">
+    <div style="position: relative; max-width: 90%; max-height: 90%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <img id="zoomedWeaponImg" src="" style="max-width: 100%; max-height: 70vh; border: 2px solid #00ffff; border-radius: 10px; box-shadow: 0 0 30px #00ffff55;">
+        <p id="zoomedWeaponName" style="text-align: center; color: #00ffff; margin-top: 15px; font-weight: bold; font-size: 1.5em;"></p>
+    </div>
+</div>
+
+<!-- Modal de Zoom do Avatar -->
+<div id="avatarZoomModal" class="modal" onclick="closeAvatarZoom()" style="display:none; z-index: 5000; background: rgba(0,0,0,0.95);">
+    <div style="position: relative; max-width: 90%; max-height: 90%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <img id="zoomedAvatarImg" src="" style="max-width: 90vw; max-height: 80vh; border: 3px solid #00ff99; border-radius: 12px; box-shadow: 0 0 30px rgba(0, 255, 153, 0.4); object-fit: contain;">
+        <p style="text-align: center; color: #00ff99; margin-top: 15px; font-weight: bold; font-size: 1.2em;">Foto de Perfil</p>
+    </div>
+</div>

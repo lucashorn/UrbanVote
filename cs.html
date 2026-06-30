@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <script>
+        (function () {
+            const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+            if (!auth || !auth.session_token) {
+                window.location.href = "login.html";
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS:S Server Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: #0d1117;
+            background-image: radial-gradient(circle at 20% 30%, rgba(0, 255, 153, 0.1) 0%, transparent 40%),
+                              radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.05) 0%, transparent 40%);
+            color: #c9d1d9;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .nav-btn {
+            position: absolute;
+            top: 30px;
+            left: 40px;
+            background: rgba(22, 27, 34, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #c9d1d9;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        .panel-container {
+            background: rgba(22, 27, 34, 0.6);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 255, 153, 0.3);
+            border-radius: 20px;
+            padding: 50px;
+            text-align: center;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5),
+                        0 0 20px rgba(0, 255, 153, 0.1);
+        }
+
+        .panel-header {
+            margin-bottom: 40px;
+        }
+
+        .panel-header i {
+            font-size: 4em;
+            color: #00ff99;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(0, 255, 153, 0.5);
+        }
+
+        .panel-header h1 {
+            font-size: 2.5em;
+            font-weight: 800;
+            color: white;
+        }
+
+        .panel-header p {
+            color: #8b949e;
+            font-size: 1.1em;
+            margin-top: 10px;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #00ff99 0%, #00cc7a 100%);
+            color: #0d1117;
+            border: none;
+            padding: 20px 40px;
+            border-radius: 50px;
+            font-size: 1.5em;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px rgba(0, 255, 153, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 30px rgba(0, 255, 153, 0.4);
+            filter: brightness(1.1);
+        }
+
+        .start-btn:active {
+            transform: translateY(0) scale(1);
+        }
+
+        .start-btn:disabled {
+            background: #30363d;
+            color: #8b949e;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stop-btn {
+            background: linear-gradient(135deg, #ff4d4d 0%, #cc0000 100%);
+            box-shadow: 0 10px 20px rgba(255, 77, 77, 0.3);
+            color: white;
+        }
+
+        .stop-btn:hover {
+            box-shadow: 0 15px 30px rgba(255, 77, 77, 0.4);
+        }
+
+    </style>
+</head>
+<body>
+
+    <a href="select.html" class="nav-btn">
+        <i class="fas fa-arrow-left"></i> Voltar à Seleção
+    </a>
+
+    <div class="panel-container">
+        <div class="panel-header">
+            <i class="fas fa-server"></i>
+            <h1>Counter-Strike: Source</h1>
+            <p>Gerencie o servidor dedicado competitivo</p>
+        </div>
+
+        <button id="serverBtn" class="start-btn" onclick="toggleServer()" disabled>
+            <i class="fas fa-spinner fa-spin"></i> Verificando...
+        </button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script>
+        const API_URL = window.location.origin.includes("localhost") || window.location.origin.includes("127.0.0.1") 
+            ? "http://localhost:8085" 
+            : window.location.origin;
+
+        let isServerRunning = false;
+
+        async function checkStatus() {
+            try {
+                const res = await fetch(`${API_URL}/api/cs/status`);
+                if (res.ok) {
+                    const data = await res.json();
+                    isServerRunning = data.running;
+                    updateBtnUI();
+                }
+            } catch (err) {
+                console.error("Erro ao checar status", err);
+            }
+        }
+
+        function updateBtnUI() {
+            const btn = document.getElementById("serverBtn");
+            btn.disabled = false;
+            if (isServerRunning) {
+                btn.className = "start-btn stop-btn";
+                btn.innerHTML = '<i class="fas fa-power-off"></i> Desligar Servidor';
+            } else {
+                btn.className = "start-btn";
+                btn.innerHTML = '<i class="fas fa-play"></i> Iniciar Servidor';
+            }
+        }
+
+        async function toggleServer() {
+            const btn = document.getElementById("serverBtn");
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+
+            const endpoint = isServerRunning ? "/api/cs/stop" : "/api/cs/start";
+
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === "success") {
+                        Swal.fire({
+                            title: 'Sucesso!',
+                            text: data.message,
+                            icon: 'success',
+                            background: '#161b22',
+                            color: '#c9d1d9',
+                            confirmButtonColor: '#00ff99',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        isServerRunning = !isServerRunning;
+                        setTimeout(checkStatus, 1500);
+                    } else {
+                        throw new Error(data.message || "Erro desconhecido");
+                    }
+                } else {
+                    const errText = await response.text();
+                    throw new Error(errText || `Erro HTTP: ${response.status}`);
+                }
+            } catch (error) {
+                Swal.fire({
+                    title: 'Erro!',
+                    text: error.message || 'Falha ao comunicar com o backend.',
+                    icon: 'error',
+                    background: '#161b22',
+                    color: '#c9d1d9',
+                    confirmButtonColor: '#ff5555'
+                });
+            } finally {
+                updateBtnUI();
+            }
+        }
+
+        // Checar o status inicialmente e depois a cada 5 segundos
+        checkStatus();
+        setInterval(checkStatus, 5000);
+    </script>
+</body>
+</html>

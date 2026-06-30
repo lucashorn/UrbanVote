@@ -2997,7 +2997,7 @@ window.addEventListener("keydown", (e) => {
                 document.getElementById("mgmtAvatarInput").value = "";
             }
             if (modal.id === "minigamesModal") {
-                stopAllMinigames();
+                showMinigamesMenu();
             }
         });
     }
@@ -3082,73 +3082,192 @@ document.getElementById("minigamesBtn").onclick = () => {
 };
 
 document.getElementById("minigamesClose").onclick = () => {
+    showMinigamesMenu();
     document.getElementById("minigamesModal").style.display = "none";
-    stopAllMinigames();
 };
 
-function showMinigamesMenu() {
-    stopAllMinigames();
-    document.getElementById("minigamesMenu").style.display = "block";
-    document.getElementById("aimTrainerGame").style.display = "none";
-    document.getElementById("reactionTrainerGame").style.display = "none";
-    document.getElementById("sprayTrainerGame").style.display = "none";
-    document.getElementById("fofTrainerGame").style.display = "none";
-    document.getElementById("grenadeTrainerGame").style.display = "none";
+ function showMinigamesMenu() {
+     stopAllMinigames();
+     document.getElementById("minigamesMenu").style.display = "block";
+     document.getElementById("aimTrainerGame").style.display = "none";
+     document.getElementById("reactionTrainerGame").style.display = "none";
+     document.getElementById("sprayTrainerGame").style.display = "none";
+     document.getElementById("fofTrainerGame").style.display = "none";
+     document.getElementById("grenadeTrainerGame").style.display = "none";
+     document.getElementById("termoTrainerGame").style.display = "none";
+     document.getElementById("bombTrainerGame").style.display = "none";
+     
+     const aimHighScores = JSON.parse(localStorage.getItem("aim_trainer_highscores") || "{}");
+     let maxAim = 0;
+     Object.values(aimHighScores).forEach(score => {
+         if (score > maxAim) maxAim = score;
+     });
+ 
+     const localReaction = parseInt(localStorage.getItem("reaction_highscore") || "0");
+     const localSpray = parseInt(localStorage.getItem("spray_highscore") || "0");
+     const localFof = parseInt(localStorage.getItem("fof_highscore") || "0");
+     const localGrenade = parseInt(localStorage.getItem("grenade_highscore") || "0");
+     const localTermo = parseInt(localStorage.getItem("termo_highscore") || "0");
+     const localBomb = parseInt(localStorage.getItem("bomb_highscore") || "0");
+ 
+     document.getElementById("aimTrainerHighScore").innerText = maxAim;
+     document.getElementById("reactionHighScore").innerText = localReaction > 0 ? `${localReaction} ms` : "Sem recorde";
+     document.getElementById("sprayHighScore").innerText = localSpray > 0 ? `${localSpray}%` : "0%";
+     document.getElementById("fofHighScore").innerText = localFof;
+     document.getElementById("grenadeHighScore").innerText = localGrenade;
+     document.getElementById("termoHighScore").innerText = localTermo;
+     document.getElementById("bombHighScore").innerText = localBomb;
+ 
+     const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+     if (auth) {
+         const activeName = auth.player_name || auth.username;
+         fetch(`${API_URL}/profile?player=${encodeURIComponent(activeName)}`)
+             .then(res => res.json())
+             .then(data => {
+                 if (data) {
+                     const dbAim = data.aimHighscore || 0;
+                     const dbReaction = data.reactionHighscore || 0;
+                     const dbSpray = data.sprayHighscore || 0;
+                     const dbFof = data.fofHighscore || 0;
+                     const dbGrenade = data.grenadeHighscore || 0;
+                     const dbTermo = data.termoHighscore || 0;
+                     const dbBomb = data.bombHighscore || 0;
+ 
+                     if (dbAim > maxAim) {
+                         maxAim = dbAim;
+                         document.getElementById("aimTrainerHighScore").innerText = maxAim;
+                     }
+                     if (dbReaction > 0 && (localReaction === 0 || dbReaction < localReaction)) {
+                         localStorage.setItem("reaction_highscore", dbReaction);
+                         document.getElementById("reactionHighScore").innerText = `${dbReaction} ms`;
+                     }
+                     if (dbSpray > localSpray) {
+                         localStorage.setItem("spray_highscore", dbSpray);
+                         document.getElementById("sprayHighScore").innerText = `${dbSpray}%`;
+                     }
+                     if (dbFof > localFof) {
+                         localStorage.setItem("fof_highscore", dbFof);
+                         document.getElementById("fofHighScore").innerText = dbFof;
+                     }
+                     if (dbGrenade > localGrenade) {
+                         localStorage.setItem("grenade_highscore", dbGrenade);
+                         document.getElementById("grenadeHighScore").innerText = dbGrenade;
+                     }
+                     if (dbTermo > localTermo) {
+                         localStorage.setItem("termo_highscore", dbTermo);
+                         document.getElementById("termoHighScore").innerText = dbTermo;
+                     }
+                     if (dbBomb > localBomb) {
+                         localStorage.setItem("bomb_highscore", dbBomb);
+                         document.getElementById("bombHighScore").innerText = dbBomb;
+                     }
+                 }
+             })
+             .catch(err => console.error("Erro ao sincronizar recordes com banco:", err));
+     }
+ }
+
+function startCountdown(containerId, onComplete) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
     
-    const aimHighScores = JSON.parse(localStorage.getItem("aim_trainer_highscores") || "{}");
-    let maxAim = 0;
-    Object.values(aimHighScores).forEach(score => {
-        if (score > maxAim) maxAim = score;
-    });
-
-    const localReaction = parseInt(localStorage.getItem("reaction_highscore") || "0");
-    const localSpray = parseInt(localStorage.getItem("spray_highscore") || "0");
-    const localFof = parseInt(localStorage.getItem("fof_highscore") || "0");
-    const localGrenade = parseInt(localStorage.getItem("grenade_highscore") || "0");
-
-    document.getElementById("aimTrainerHighScore").innerText = maxAim;
-    document.getElementById("reactionHighScore").innerText = localReaction > 0 ? `${localReaction} ms` : "Sem recorde";
-    document.getElementById("sprayHighScore").innerText = localSpray > 0 ? `${localSpray}%` : "0%";
-    document.getElementById("fofHighScore").innerText = localFof;
-    document.getElementById("grenadeHighScore").innerText = localGrenade;
-
-    const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
-    if (auth) {
-        const activeName = auth.player_name || auth.username;
-        fetch(`${API_URL}/profile?player=${encodeURIComponent(activeName)}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data) {
-                    const dbAim = data.aimHighscore || 0;
-                    const dbReaction = data.reactionHighscore || 0;
-                    const dbSpray = data.sprayHighscore || 0;
-                    const dbFof = data.fofHighscore || 0;
-                    const dbGrenade = data.grenadeHighscore || 0;
-
-                    if (dbAim > maxAim) {
-                        maxAim = dbAim;
-                        document.getElementById("aimTrainerHighScore").innerText = maxAim;
-                    }
-                    if (dbReaction > 0 && (localReaction === 0 || dbReaction < localReaction)) {
-                        localStorage.setItem("reaction_highscore", dbReaction);
-                        document.getElementById("reactionHighScore").innerText = `${dbReaction} ms`;
-                    }
-                    if (dbSpray > localSpray) {
-                        localStorage.setItem("spray_highscore", dbSpray);
-                        document.getElementById("sprayHighScore").innerText = `${dbSpray}%`;
-                    }
-                    if (dbFof > localFof) {
-                        localStorage.setItem("fof_highscore", dbFof);
-                        document.getElementById("fofHighScore").innerText = dbFof;
-                    }
-                    if (dbGrenade > localGrenade) {
-                        localStorage.setItem("grenade_highscore", dbGrenade);
-                        document.getElementById("grenadeHighScore").innerText = dbGrenade;
-                    }
+    container.innerHTML = "";
+    
+    const overlay = document.createElement("div");
+    overlay.id = containerId + "-countdown-overlay";
+    overlay.style.position = "absolute";
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = "100%";
+    overlay.style.height = "100%";
+    overlay.style.display = "flex";
+    overlay.style.flexDirection = "column";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    overlay.style.background = "rgba(10, 15, 26, 0.75)";
+    overlay.style.zIndex = "100";
+    overlay.style.userSelect = "none";
+    
+    const countEl = document.createElement("div");
+    countEl.style.fontSize = "5.5em";
+    countEl.style.fontWeight = "900";
+    countEl.style.color = "#a855f7"; 
+    countEl.style.textShadow = "0 0 20px rgba(168, 85, 247, 0.8)";
+    countEl.style.transition = "transform 0.15s ease-out, opacity 0.15s ease-out";
+    countEl.style.transform = "scale(0.5)";
+    countEl.style.opacity = "0";
+    overlay.appendChild(countEl);
+    
+    container.appendChild(overlay);
+    
+    let currentCount = 3;
+    
+    const updateCount = () => {
+        if (currentCount > 0) {
+            countEl.innerText = currentCount;
+            try {
+                const ctx = getAudioContext();
+                if (ctx) {
+                    if (ctx.state === 'suspended') ctx.resume();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = "sine";
+                    osc.frequency.value = 880; 
+                    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.15);
                 }
-            })
-            .catch(err => console.error("Erro ao sincronizar recordes com banco:", err));
-    }
+            } catch(e) {
+                console.error(e);
+            }
+            
+            countEl.style.transform = "scale(0.5)";
+            countEl.style.opacity = "0";
+            countEl.offsetHeight; // force reflow
+            countEl.style.transform = "scale(1.2)";
+            countEl.style.opacity = "1";
+            
+            setTimeout(() => {
+                countEl.style.transform = "scale(1.0)";
+            }, 150);
+            
+            currentCount--;
+            setTimeout(updateCount, 1000);
+        } else {
+            countEl.innerText = "VAI!";
+            countEl.style.color = "#00ff99";
+            countEl.style.textShadow = "0 0 20px rgba(0, 255, 153, 0.8)";
+            countEl.style.transform = "scale(1.3)";
+            
+            try {
+                const ctx = getAudioContext();
+                if (ctx) {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = "sine";
+                    osc.frequency.value = 1200; 
+                    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.25);
+                }
+            } catch(e) {
+                console.error(e);
+            }
+            
+            setTimeout(() => {
+                overlay.remove();
+                onComplete();
+            }, 600);
+        }
+    };
+    
+    updateCount();
 }
 
 function startAimTrainerMenu() {
@@ -3230,27 +3349,28 @@ function startAimTrainer() {
     
     const targetArea = document.getElementById("aimTargetArea");
     targetArea.innerHTML = "";
-    
     // Set up click handler on the playground (for miss counting)
     targetArea.onclick = handlePlaygroundClick;
     
-    // Start game timer
-    aimGameTimerId = setInterval(() => {
-        aimTimerValue--;
-        document.getElementById("gameTimer").innerText = aimTimerValue + "s";
-        if (aimTimerValue <= 0) {
-            stopAimTrainer(true);
+    startCountdown("aimTargetArea", () => {
+        // Start game timer
+        aimGameTimerId = setInterval(() => {
+            aimTimerValue--;
+            document.getElementById("gameTimer").innerText = aimTimerValue + "s";
+            if (aimTimerValue <= 0) {
+                stopAimTrainer(true);
+            }
+        }, 1000);
+        
+        // Spawn 3 initial targets
+        for (let i = 0; i < 3; i++) {
+            spawnTarget();
         }
-    }, 1000);
-    
-    // Spawn 3 initial targets
-    for (let i = 0; i < 3; i++) {
-        spawnTarget();
-    }
-    
-    // Physics / Movement loop
-    lastFrameTime = performance.now();
-    aimAnimationId = requestAnimationFrame(updateTargetsPhysics);
+        
+        // Physics / Movement loop
+        lastFrameTime = performance.now();
+        aimAnimationId = requestAnimationFrame(updateTargetsPhysics);
+    });
 }
 
 function handlePlaygroundClick(e) {
@@ -3579,14 +3699,16 @@ function playSuccessSound() {
     }
 }
 
-// Stop all running games
-function stopAllMinigames() {
-    stopAimTrainer(false);
-    stopReactionTrainer(false);
-    stopSprayTrainer(false);
-    stopFofGame(false);
-    stopGrenadeGame(false);
-}
+ // Stop all running games
+ function stopAllMinigames() {
+     stopAimTrainer(false);
+     stopReactionTrainer(false);
+     stopSprayTrainer(false);
+     stopFofGame(false);
+     stopGrenadeGame(false);
+     stopTermoTrainer(false);
+     stopBombTrainer(false);
+ }
 
 // ──────────────────────────────────────────
 // 1. TESTE DE REAÇÃO (REACTION TIME)
@@ -4090,16 +4212,18 @@ function startFofGame() {
     
     targetArea.onclick = handleFofPlaygroundClick;
     
-    fofTimerId = setInterval(() => {
-        fofTimerValue--;
-        document.getElementById("fofLiveTimer").innerText = fofTimerValue + "s";
-        if (fofTimerValue <= 0) {
-            stopFofGame(true);
-        }
-    }, 1000);
-    
-    spawnFofTarget();
-    fofSpawnTimerId = setInterval(spawnFofTarget, 650);
+    startCountdown("fofTargetArea", () => {
+        fofTimerId = setInterval(() => {
+            fofTimerValue--;
+            document.getElementById("fofLiveTimer").innerText = fofTimerValue + "s";
+            if (fofTimerValue <= 0) {
+                stopFofGame(true);
+            }
+        }, 1000);
+        
+        spawnFofTarget();
+        fofSpawnTimerId = setInterval(spawnFofTarget, 650);
+    });
 }
 
 function handleFofPlaygroundClick(e) {
@@ -5038,5 +5162,948 @@ function grenadeGameLoop() {
     }
     
     grenadeAnimFrameId = requestAnimationFrame(grenadeGameLoop);
+}
+
+
+// ──────────────────────────────────────────
+// 6. TERMO TERROR (WORDLE CLONE)
+// ──────────────────────────────────────────
+let termoGameRunning = false;
+let termoActiveSession = false;
+let termoSecretWord = "";
+let termoCurrentRow = 0;
+let termoCurrentCol = 0;
+let termoStreak = 0;
+const termoWordsList = [
+    "BOMBA", "SLIDE", "MEDIC", "LASER", "SMOKE", 
+    "ABBEY", "PARIS", "RADIO", "JUMPS", "SHOTS", 
+    "ARMAS", "RIVAL", "PLACA", "KILLS", "DEATH", 
+    "ADMIN", "VOTOS", "SOUND", "FOGO", "TERRA", 
+    "AMIGO", "TEMPO", "CORPO", "JOGOS", "GRUPO", 
+    "PRETO", "FORTE", "SIGLA", "PODER", "UNIAO", 
+    "CAMPO", "ROUND", "CLUBE", "ARENA", "URBAN",
+    "PORTA", "PEDRA", "CHAVE", "LINHA", "PONTO",
+    "GOLPE", "SANGU", "MURAL", "FAROL", "PULSO"
+];
+
+function startTermoTrainerMenu() {
+    document.getElementById("minigamesMenu").style.display = "none";
+    document.getElementById("termoTrainerGame").style.display = "block";
+    document.getElementById("termoTrainerSetup").style.display = "block";
+    document.getElementById("termoTrainerPlayground").style.display = "none";
+    document.getElementById("termoGameOver").style.display = "none";
+
+    const saved = parseInt(localStorage.getItem("termo_highscore") || "0");
+    document.getElementById("termoGameHighScore").innerText = saved;
+    termoStreak = parseInt(localStorage.getItem("termo_current_streak") || "0");
+}
+
+function updateTermoCellSelection() {
+    for (let r = 0; r < 6; r++) {
+        for (let c = 0; c < 5; c++) {
+            const cell = document.getElementById(`termo-cell-${r}-${c}`);
+            if (cell) {
+                cell.classList.remove("selected");
+                if (r === termoCurrentRow && termoGameRunning) {
+                    cell.classList.add("clickable");
+                } else {
+                    cell.classList.remove("clickable");
+                }
+            }
+        }
+    }
+    if (termoGameRunning && termoCurrentCol >= 0 && termoCurrentCol < 5) {
+        const cell = document.getElementById(`termo-cell-${termoCurrentRow}-${termoCurrentCol}`);
+        if (cell) {
+            cell.classList.add("selected");
+        }
+    }
+}
+
+function setupTermoGrid() {
+    const grid = document.getElementById("termoGrid");
+    grid.innerHTML = "";
+    for (let r = 0; r < 6; r++) {
+        const rowDiv = document.createElement("div");
+        rowDiv.className = "termo-grid-row";
+        rowDiv.id = `termo-row-${r}`;
+        for (let c = 0; c < 5; c++) {
+            const cellDiv = document.createElement("div");
+            cellDiv.className = "termo-cell";
+            cellDiv.id = `termo-cell-${r}-${c}`;
+            cellDiv.innerText = "";
+            
+            cellDiv.onclick = () => {
+                if (termoGameRunning && r === termoCurrentRow) {
+                    termoCurrentCol = c;
+                    updateTermoCellSelection();
+                }
+            };
+            
+            rowDiv.appendChild(cellDiv);
+        }
+        grid.appendChild(rowDiv);
+    }
+}
+
+function setupTermoKeyboard() {
+    const keyboard = document.getElementById("termoKeyboard");
+    keyboard.innerHTML = "";
+    const rows = [
+        ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+        ["A", "S", "D", "F", "G", "H", "J", "K", "L", "Ç"],
+        ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "APAGAR"]
+    ];
+
+    rows.forEach((row, rowIndex) => {
+        const rowDiv = document.createElement("div");
+        rowDiv.className = "termo-kbd-row";
+        row.forEach(key => {
+            const btn = document.createElement("button");
+            btn.className = "termo-key";
+            btn.innerText = key;
+            btn.setAttribute("data-key", key);
+            if (key === "ENTER" || key === "APAGAR") {
+                btn.classList.add("wide");
+            }
+            btn.onclick = () => handleTermoInput(key);
+            rowDiv.appendChild(btn);
+        });
+        keyboard.appendChild(rowDiv);
+    });
+}
+
+async function startTermoTrainer() {
+    termoActiveSession = true;
+    termoCurrentRow = 0;
+    termoCurrentCol = 0;
+    
+    // Set fallback secret word synchronously so it is never empty
+    const fallbackIdx = Math.floor(Math.random() * termoWordsList.length);
+    termoSecretWord = termoWordsList[fallbackIdx].toUpperCase();
+
+    setupTermoGrid();
+    setupTermoKeyboard();
+    updateTermoCellSelection();
+
+    document.getElementById("termoGameOver").style.display = "none";
+    document.getElementById("termoTrainerSetup").style.display = "none";
+    document.getElementById("termoTrainerPlayground").style.display = "block";
+
+    termoGameRunning = true; // Allow typing immediately!
+
+    try {
+        const response = await fetch("/random-word");
+        const data = await response.json();
+        termoSecretWord = data.word.toUpperCase();
+    } catch (e) {
+        console.error("Erro ao obter palavra secreta:", e);
+    }
+    console.log("Secret word:", termoSecretWord);
+}
+
+function handleTermoInput(key) {
+    if (!termoGameRunning) {
+        if (document.getElementById("termoGameOver").style.display === "block") {
+            startTermoTrainer();
+        }
+        return;
+    }
+
+    if (key === "APAGAR" || key === "BACKSPACE") {
+        const currentCell = document.getElementById(`termo-cell-${termoCurrentRow}-${termoCurrentCol}`);
+        if (currentCell && currentCell.innerText !== "") {
+            currentCell.innerText = "";
+            currentCell.classList.remove("pop");
+        } else {
+            if (termoCurrentCol > 0) {
+                termoCurrentCol--;
+                const prevCell = document.getElementById(`termo-cell-${termoCurrentRow}-${termoCurrentCol}`);
+                if (prevCell) {
+                    prevCell.innerText = "";
+                    prevCell.classList.remove("pop");
+                }
+            }
+        }
+        updateTermoCellSelection();
+    } 
+    else if (key === "ENTER") {
+        let isFull = true;
+        for (let c = 0; c < 5; c++) {
+            const val = document.getElementById(`termo-cell-${termoCurrentRow}-${c}`).innerText;
+            if (!val) {
+                isFull = false;
+                break;
+            }
+        }
+        if (isFull) {
+            submitTermoGuess();
+        } else {
+            const row = document.getElementById(`termo-row-${termoCurrentRow}`);
+            row.classList.add("shake");
+            playMissSound();
+            setTimeout(() => row.classList.remove("shake"), 400);
+        }
+    } 
+    else if (/^[A-ZÇ]$/i.test(key)) {
+        if (termoCurrentCol < 5) {
+            const cell = document.getElementById(`termo-cell-${termoCurrentRow}-${termoCurrentCol}`);
+            if (cell) {
+                cell.innerText = key.toUpperCase();
+                cell.classList.add("pop");
+                termoCurrentCol++;
+                updateTermoCellSelection();
+            }
+        }
+    }
+}
+
+// Keyboard listener for Termo
+document.addEventListener("keydown", (e) => {
+    if (document.getElementById("termoTrainerGame") && document.getElementById("termoTrainerGame").style.display === "block" && termoGameRunning) {
+        let key = e.key.toUpperCase();
+        if (key === "BACKSPACE") {
+            handleTermoInput("APAGAR");
+        } else if (key === "ENTER") {
+            handleTermoInput("ENTER");
+        } else if (key === "ARROWLEFT") {
+            if (termoCurrentCol > 0) {
+                termoCurrentCol--;
+                updateTermoCellSelection();
+            }
+        } else if (key === "ARROWRIGHT") {
+            if (termoCurrentCol < 4) {
+                termoCurrentCol++;
+                updateTermoCellSelection();
+            }
+        } else if (/^[A-ZÇ]$/i.test(key)) {
+            handleTermoInput(key);
+        }
+    }
+});
+
+async function submitTermoGuess() {
+    let guess = "";
+    for (let c = 0; c < 5; c++) {
+        guess += document.getElementById(`termo-cell-${termoCurrentRow}-${c}`).innerText;
+    }
+
+    const row = document.getElementById(`termo-row-${termoCurrentRow}`);
+    
+    termoGameRunning = false;
+    updateTermoCellSelection();
+    
+    let isValid = false;
+    try {
+        const response = await fetch("/validate-word", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ word: guess })
+        });
+        const data = await response.json();
+        isValid = data.valid;
+    } catch (e) {
+        console.error("Erro ao validar palavra:", e);
+        isValid = true; 
+    }
+
+    if (!isValid) {
+        row.classList.add("shake");
+        playMissSound();
+        showToast("warning", "Palavra não existe no dicionário!");
+        setTimeout(() => {
+            if (!termoActiveSession) return;
+            row.classList.remove("shake");
+            termoGameRunning = true;
+            updateTermoCellSelection();
+        }, 400);
+        return;
+    }
+
+    const secretLetterCount = {};
+    for (let i = 0; i < 5; i++) {
+        const char = termoSecretWord[i];
+        secretLetterCount[char] = (secretLetterCount[char] || 0) + 1;
+    }
+
+    const cellStatuses = Array(5).fill("absent");
+    
+    for (let i = 0; i < 5; i++) {
+        if (guess[i] === termoSecretWord[i]) {
+            cellStatuses[i] = "correct";
+            secretLetterCount[guess[i]]--;
+        }
+    }
+
+    for (let i = 0; i < 5; i++) {
+        if (cellStatuses[i] !== "correct") {
+            const char = guess[i];
+            if (secretLetterCount[char] && secretLetterCount[char] > 0) {
+                cellStatuses[i] = "present";
+                secretLetterCount[char]--;
+            }
+        }
+    }
+
+    for (let c = 0; c < 5; c++) {
+        const cell = document.getElementById(`termo-cell-${termoCurrentRow}-${c}`);
+        const status = cellStatuses[c];
+        const letter = guess[c];
+
+        setTimeout(() => {
+            if (!termoActiveSession) return;
+            cell.classList.add("flip");
+            setTimeout(() => {
+                if (!termoActiveSession) return;
+                cell.classList.remove("flip");
+                cell.classList.add(status);
+                
+                const kbdKey = document.querySelector(`.termo-key[data-key="${letter}"]`);
+                if (kbdKey) {
+                    if (status === "correct") {
+                        kbdKey.classList.remove("present", "absent");
+                        kbdKey.classList.add("correct");
+                    } else if (status === "present" && !kbdKey.classList.contains("correct")) {
+                        kbdKey.classList.remove("absent");
+                        kbdKey.classList.add("present");
+                    } else if (status === "absent" && !kbdKey.classList.contains("correct") && !kbdKey.classList.contains("present")) {
+                        kbdKey.classList.add("absent");
+                    }
+                }
+                
+                if (c === 4) {
+                    termoGameRunning = true;
+                    if (guess === termoSecretWord) {
+                        finishTermoGame(true);
+                    } else if (termoCurrentRow === 5) {
+                        finishTermoGame(false);
+                    } else {
+                        termoCurrentRow++;
+                        termoCurrentCol = 0;
+                    }
+                }
+            }, 120);
+        }, c * 200);
+    }
+}
+
+function finishTermoGame(won) {
+    termoGameRunning = false;
+    document.getElementById("termoTrainerPlayground").style.display = "none";
+    document.getElementById("termoGameOver").style.display = "block";
+    document.getElementById("termoSecretWordReveal").innerText = termoSecretWord;
+
+    const title = document.getElementById("termoGameOverTitle");
+    const attemptsSpan = document.getElementById("termoEndAttempts");
+    const streakSpan = document.getElementById("termoEndStreak");
+    const scoreSpan = document.getElementById("termoEndScore");
+
+    let score = 0;
+    if (won) {
+        playSuccessSound();
+        title.innerText = "Você Venceu!";
+        title.style.color = "#22c55e";
+        attemptsSpan.innerText = `${termoCurrentRow + 1} / 6`;
+        score = (6 - termoCurrentRow) * 100;
+        termoStreak++;
+    } else {
+        playMissSound();
+        title.innerText = "Fim de Jogo!";
+        title.style.color = "#ff3333";
+        attemptsSpan.innerText = "Fracassou";
+        score = 0;
+        termoStreak = 0;
+    }
+
+    localStorage.setItem("termo_current_streak", termoStreak);
+    streakSpan.innerText = termoStreak;
+    scoreSpan.innerText = `${score} pts`;
+
+    const oldRecord = parseInt(localStorage.getItem("termo_highscore") || "0");
+    let isNewRecord = false;
+    if (termoStreak > oldRecord) {
+        localStorage.setItem("termo_highscore", termoStreak);
+        document.getElementById("termoGameHighScore").innerText = termoStreak;
+        isNewRecord = true;
+    }
+
+    const flash = document.getElementById("newTermoHighScoreFlash");
+    flash.style.display = isNewRecord ? "block" : "none";
+
+    // Sync highscore
+    const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+    if (auth && auth.session_token) {
+        fetch(`${API_URL}/update-minigame-highscore`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                username: auth.username,
+                session_token: auth.session_token,
+                game_type: "termo",
+                highscore: termoStreak
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === "ok" && data.updated) {
+                localStorage.setItem("termo_highscore", data.highscore);
+                document.getElementById("termoGameHighScore").innerText = data.highscore;
+                flash.style.display = "block";
+            }
+        })
+        .catch(err => console.error(err));
+    }
+}
+
+function stopTermoTrainer(finished = false) {
+    termoGameRunning = false;
+    termoActiveSession = false;
+}
+
+
+
+
+
+// ──────────────────────────────────────────
+// 8. DESARME A BOMBA (SIMON MEMORY KEYPAD)
+// ──────────────────────────────────────────
+let bombGameRunning = false;
+let bombSequence = [];
+let bombUserSequence = [];
+let bombLevel = 1;
+let bombLives = 3;
+let bombScore = 0;
+let bombTimerInterval = null;
+let bombTimeElapsed = 0;
+let bombInputActive = false;
+let bombActiveSession = false;
+let bombCountdown = 0;
+let bombCountdownInterval = null;
+
+function playBuzzerSound() {
+    try {
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(100, ctx.currentTime);
+        osc.frequency.setValueAtTime(100, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+function playExplosionSound() {
+    try {
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+        
+        const bufferSize = ctx.sampleRate * 1.5;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+        
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        
+        const filter = ctx.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(800, ctx.currentTime);
+        filter.frequency.linearRampToValueAtTime(100, ctx.currentTime + 1.2);
+        
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.35, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.005, ctx.currentTime + 1.4);
+        
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        
+        noise.start();
+        noise.stop(ctx.currentTime + 1.5);
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+function playKeyTone(number) {
+    try {
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        // Distinct notes for numbers 1 to 9
+        const freq = 220 + number * 60;
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+let bombCountdownRunning = false;
+
+function playCountdownBeep() {
+    try {
+        const ctx = getAudioContext();
+        if (ctx) {
+            if (ctx.state === 'suspended') ctx.resume();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = "sine";
+            osc.frequency.value = 1000;
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.15);
+        }
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+function handleC4VisorClick() {
+    if (bombGameRunning || bombCountdownRunning) return;
+    triggerBombCountdown();
+}
+
+function triggerBombCountdown() {
+    if (bombGameRunning || bombCountdownRunning) return;
+    bombCountdownRunning = true;
+    
+    const led = document.getElementById("c4LedText");
+    led.style.cursor = "default";
+    
+    let count = 3;
+    const run = () => {
+        if (count > 0) {
+            led.innerText = count;
+            led.style.color = "#ff3333";
+            led.style.textShadow = "0 0 8px #ff0000";
+            playCountdownBeep();
+            count--;
+            setTimeout(run, 1000);
+        } else {
+            bombCountdownRunning = false;
+            startBombTrainer();
+        }
+    };
+    run();
+}
+
+function startBombTrainerMenu() {
+    document.getElementById("minigamesMenu").style.display = "none";
+    document.getElementById("bombTrainerGame").style.display = "block";
+    document.getElementById("bombTrainerPlayground").style.display = "block";
+    document.getElementById("bombGameOver").style.display = "none";
+
+    const saved = parseInt(localStorage.getItem("bomb_highscore") || "0");
+    document.getElementById("bombGameHighScore").innerText = saved;
+
+    setupBombKeypad();
+    resetBombGameElements();
+}
+
+function setupBombKeypad() {
+    const keypad = document.querySelector(".c4-keypad");
+    if (!keypad) return;
+    keypad.innerHTML = "";
+    for (let i = 1; i <= 9; i++) {
+        const btn = document.createElement("button");
+        btn.className = "c4-key-btn";
+        btn.id = `c4-key-${i}`;
+        btn.innerText = i;
+        btn.onclick = () => handleBombKeyClick(i);
+        keypad.appendChild(btn);
+    }
+}
+
+function resetBombGameElements() {
+    bombGameRunning = false;
+    bombInputActive = false;
+    if (bombTimerInterval) clearInterval(bombTimerInterval);
+    if (bombCountdownInterval) {
+        clearInterval(bombCountdownInterval);
+        bombCountdownInterval = null;
+    }
+    bombLevel = 1;
+    bombLives = 3;
+    bombScore = 0;
+    bombTimeElapsed = 0;
+    bombSequence = [];
+    bombUserSequence = [];
+
+    const led = document.getElementById("c4LedText");
+    if (led) {
+        led.innerText = "INICIAR";
+        led.style.cursor = "pointer";
+        led.onclick = handleC4VisorClick;
+        led.style.color = "#ef4444";
+        led.style.textShadow = "0 0 8px #ff0000";
+    }
+    document.getElementById("bombLevel").innerText = "Nível 1";
+    document.getElementById("bombLives").innerText = "❤❤❤";
+    document.getElementById("bombInputTimer").innerText = "-";
+    document.getElementById("bombInputTimer").style.color = "#aaa";
+    document.getElementById("bombScore").innerText = "0";
+}
+
+function startBombTrainer() {
+    bombGameRunning = true;
+    bombActiveSession = true;
+    bombInputActive = false;
+    if (bombTimerInterval) clearInterval(bombTimerInterval);
+    if (bombCountdownInterval) {
+        clearInterval(bombCountdownInterval);
+        bombCountdownInterval = null;
+    }
+    bombLevel = 1;
+    bombLives = 3;
+    bombScore = 0;
+    bombTimeElapsed = 0;
+    bombSequence = [];
+    bombUserSequence = [];
+
+    const led = document.getElementById("c4LedText");
+    if (led) {
+        led.innerText = "PLAYING";
+        led.style.color = "#eab308";
+        led.style.textShadow = "0 0 8px #eab308";
+        led.style.cursor = "default";
+        led.onclick = null;
+    }
+    document.getElementById("bombLevel").innerText = "Nível 1";
+    document.getElementById("bombLives").innerText = "❤❤❤";
+    document.getElementById("bombInputTimer").innerText = "-";
+    document.getElementById("bombInputTimer").style.color = "#aaa";
+    document.getElementById("bombScore").innerText = "0";
+
+    document.getElementById("bombGameOver").style.display = "none";
+    document.getElementById("bombTrainerPlayground").style.display = "block";
+
+    bombTimerInterval = setInterval(() => {
+        if (!bombGameRunning) return;
+        bombTimeElapsed++;
+    }, 1000);
+
+    startBombNextLevel();
+}
+
+function startBombNextLevel() {
+    bombUserSequence = [];
+    document.getElementById("bombLevel").innerText = `Nível ${bombLevel}`;
+    document.getElementById("bombScore").innerText = bombScore;
+
+    // Build the sequence (increases in length per level)
+    const seqLength = 2 + bombLevel;
+    bombSequence = [];
+    for (let i = 0; i < seqLength; i++) {
+        bombSequence.push(Math.floor(Math.random() * 9) + 1);
+    }
+
+    playSequenceToUser();
+}
+
+function playSequenceToUser() {
+    bombInputActive = false;
+    if (bombCountdownInterval) {
+        clearInterval(bombCountdownInterval);
+        bombCountdownInterval = null;
+    }
+    document.getElementById("bombInputTimer").innerText = "-";
+    document.getElementById("bombInputTimer").style.color = "#aaa";
+
+    document.getElementById("c4LedText").innerText = "PLAYING";
+    document.getElementById("c4LedText").style.color = "#eab308";
+    document.getElementById("c4LedText").style.textShadow = "0 0 8px #eab308";
+
+    let step = 0;
+    const interval = 500 - Math.min(200, bombLevel * 15); // accelerates in later levels
+
+    const playTimer = setInterval(() => {
+        if (!bombGameRunning) {
+            clearInterval(playTimer);
+            return;
+        }
+
+        const num = bombSequence[step];
+        const btn = document.getElementById(`c4-key-${num}`);
+        
+        // Light up button
+        if (btn) btn.classList.add("active");
+        playKeyTone(num);
+
+        setTimeout(() => {
+            if (btn) btn.classList.remove("active");
+        }, interval - 100);
+
+        step++;
+        if (step >= bombSequence.length) {
+            clearInterval(playTimer);
+            
+            // Allow input
+            setTimeout(() => {
+                if (!bombActiveSession) return;
+                bombInputActive = true;
+                document.getElementById("c4LedText").innerText = "KEY IN";
+                document.getElementById("c4LedText").style.color = "#00ff99";
+                document.getElementById("c4LedText").style.textShadow = "0 0 8px #00ff99";
+                startBombInputTimer();
+            }, 300);
+        }
+    }, interval);
+}
+
+function startBombInputTimer() {
+    if (bombCountdownInterval) clearInterval(bombCountdownInterval);
+    bombCountdown = 5 + bombLevel;
+    
+    const formatTime = (sec) => `00:${sec < 10 ? '0' + sec : sec}`;
+
+    document.getElementById("bombInputTimer").innerText = `${bombCountdown}s`;
+    document.getElementById("bombInputTimer").style.color = "#ffaa00";
+
+    const led = document.getElementById("c4LedText");
+    if (led) {
+        led.innerText = formatTime(bombCountdown);
+        led.style.color = "#00ff99";
+        led.style.textShadow = "0 0 8px #00ff99";
+    }
+
+    bombCountdownInterval = setInterval(() => {
+        if (!bombGameRunning || !bombInputActive) {
+            clearInterval(bombCountdownInterval);
+            return;
+        }
+        bombCountdown--;
+        if (bombCountdown <= 0) {
+            bombCountdown = 0;
+            document.getElementById("bombInputTimer").innerText = "0s";
+            document.getElementById("bombInputTimer").style.color = "#ff3333";
+            if (led) {
+                led.innerText = "00:00";
+                led.style.color = "#ff3333";
+                led.style.textShadow = "0 0 8px #ff0000";
+            }
+            clearInterval(bombCountdownInterval);
+            handleBombTimeout();
+        } else {
+            document.getElementById("bombInputTimer").innerText = `${bombCountdown}s`;
+            if (led) {
+                led.innerText = formatTime(bombCountdown);
+            }
+            if (bombCountdown <= 2) {
+                document.getElementById("bombInputTimer").style.color = "#ff3333";
+                if (led) {
+                    led.style.color = "#ff3333";
+                    led.style.textShadow = "0 0 8px #ff0000";
+                }
+            } else if (bombCountdown <= 4) {
+                document.getElementById("bombInputTimer").style.color = "#eab308";
+                if (led) {
+                    led.style.color = "#eab308";
+                    led.style.textShadow = "0 0 8px #eab308";
+                }
+            }
+        }
+    }, 1000);
+}
+
+function handleBombTimeout() {
+    bombInputActive = false;
+    bombLives--;
+    
+    let hearts = "";
+    for (let i = 0; i < 3; i++) {
+        hearts += i < bombLives ? "❤" : "🖤";
+    }
+    document.getElementById("bombLives").innerText = hearts;
+
+    playBuzzerSound();
+    document.getElementById("c4LedText").innerText = "TIMEOUT";
+    document.getElementById("c4LedText").style.color = "#ff3333";
+    document.getElementById("c4LedText").style.textShadow = "0 0 8px #ff0000";
+
+    if (bombLives <= 0) {
+        setTimeout(() => {
+            if (!bombActiveSession) return;
+            finishBombGame();
+        }, 500);
+    } else {
+        bombUserSequence = [];
+        setTimeout(() => {
+            if (!bombActiveSession) return;
+            playSequenceToUser();
+        }, 1200);
+    }
+}
+
+function handleBombKeyClick(num) {
+    if (!bombGameRunning || !bombInputActive) return;
+
+    // Light up key
+    const btn = document.getElementById(`c4-key-${num}`);
+    if (btn) {
+        btn.classList.add("active");
+        setTimeout(() => btn.classList.remove("active"), 150);
+    }
+
+    playKeyTone(num);
+
+    const targetNum = bombSequence[bombUserSequence.length];
+    if (num === targetNum) {
+        bombUserSequence.push(num);
+        if (bombUserSequence.length === bombSequence.length) {
+            // Success level!
+            bombInputActive = false;
+            if (bombCountdownInterval) {
+                clearInterval(bombCountdownInterval);
+                bombCountdownInterval = null;
+            }
+            document.getElementById("bombInputTimer").innerText = "-";
+            
+            bombScore += bombLevel * 150;
+            bombLevel++;
+
+            document.getElementById("c4LedText").innerText = "OK!";
+            document.getElementById("c4LedText").style.color = "#22c55e";
+            document.getElementById("c4LedText").style.textShadow = "0 0 8px #22c55e";
+            playSuccessSound();
+
+            setTimeout(() => {
+                if (!bombActiveSession) return;
+                startBombNextLevel();
+            }, 1000);
+        }
+    } else {
+        // Failed attempt
+        bombInputActive = false;
+        if (bombCountdownInterval) {
+            clearInterval(bombCountdownInterval);
+            bombCountdownInterval = null;
+        }
+        document.getElementById("bombInputTimer").innerText = "-";
+        
+        bombLives--;
+        
+        // Update lives display
+        let hearts = "";
+        for (let i = 0; i < 3; i++) {
+            hearts += i < bombLives ? "❤" : "🖤";
+        }
+        document.getElementById("bombLives").innerText = hearts;
+
+        playBuzzerSound();
+        document.getElementById("c4LedText").innerText = "ERROR";
+        document.getElementById("c4LedText").style.color = "#ff3333";
+        document.getElementById("c4LedText").style.textShadow = "0 0 8px #ff0000";
+
+        if (bombLives <= 0) {
+            // BOOM!
+            setTimeout(() => {
+                if (!bombActiveSession) return;
+                finishBombGame();
+            }, 500);
+        } else {
+            // Replay sequence
+            bombUserSequence = [];
+            setTimeout(() => {
+                if (!bombActiveSession) return;
+                playSequenceToUser();
+            }, 1200);
+        }
+    }
+}
+
+function finishBombGame() {
+    bombGameRunning = false;
+    if (bombTimerInterval) clearInterval(bombTimerInterval);
+    playExplosionSound();
+
+    document.getElementById("c4LedText").innerText = "BOOM!";
+    document.getElementById("c4LedText").style.color = "#ff1111";
+
+    setTimeout(() => {
+        if (!bombActiveSession) return;
+        document.getElementById("bombTrainerPlayground").style.display = "none";
+        document.getElementById("bombGameOver").style.display = "block";
+
+        const scoreSpan = document.getElementById("bombEndScore");
+        const seqSpan = document.getElementById("bombEndSequence");
+        const timeSpan = document.getElementById("bombEndTime");
+
+        scoreSpan.innerText = `${bombScore} pts`;
+        seqSpan.innerText = `Nível ${bombLevel}`;
+        timeSpan.innerText = `${bombTimeElapsed}s`;
+
+        const oldRecord = parseInt(localStorage.getItem("bomb_highscore") || "0");
+        let isNewRecord = false;
+        if (bombScore > oldRecord) {
+            localStorage.setItem("bomb_highscore", bombScore);
+            document.getElementById("bombGameHighScore").innerText = bombScore;
+            isNewRecord = true;
+        }
+
+        const flash = document.getElementById("newBombHighScoreFlash");
+        flash.style.display = isNewRecord ? "block" : "none";
+
+        // Sync highscore
+        const auth = JSON.parse(localStorage.getItem("urban_auth") || "null");
+        if (auth && auth.session_token) {
+            fetch(`${API_URL}/update-minigame-highscore`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username: auth.username,
+                    session_token: auth.session_token,
+                    game_type: "bomb",
+                    highscore: bombScore
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "ok" && data.updated) {
+                    localStorage.setItem("bomb_highscore", data.highscore);
+                    document.getElementById("bombGameHighScore").innerText = data.highscore;
+                    flash.style.display = "block";
+                }
+            })
+            .catch(err => console.error(err));
+        }
+    }, 1000);
+}
+
+function stopBombTrainer(finished = false) {
+    bombGameRunning = false;
+    bombActiveSession = false;
+    bombInputActive = false;
+    if (bombTimerInterval) {
+        clearInterval(bombTimerInterval);
+        bombTimerInterval = null;
+    }
+    if (bombCountdownInterval) {
+        clearInterval(bombCountdownInterval);
+        bombCountdownInterval = null;
+    }
 }
 

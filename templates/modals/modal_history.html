@@ -1,0 +1,27 @@
+<!-- Modal de Todas as Partidas -->
+<div id="allMatchesModal" class="modal" style="z-index: 1010;">
+    <div class="modal-content profile-modal" style="max-width: 800px; border-color: #ffaa00;">
+        <span class="close" id="allMatchesClose">&times;</span>
+        <div class="all-matches-header" style="margin-bottom: 20px; text-align: center;">
+            <h2 style="color: #ffaa00; margin: 0;">Histórico Completo de Partidas</h2>
+            <p style="color: #888; font-size: 0.9em; margin: 5px 0 0 0;">Clique em um mapa para ver o placar</p>
+        </div>
+        <div id="allMatchesGridContainer" class="all-matches-grid" style="max-height: 500px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; padding: 10px 5px;">
+            <!-- Todas as partidas serão injetadas aqui -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Placar da Partida -->
+<div id="matchScoreboardModal" class="modal" style="z-index: 2000;">
+    <div class="modal-content profile-modal" style="max-width: 500px; border-color: #ffaa00;">
+        <span class="close" id="matchScoreboardClose">&times;</span>
+        <div class="scoreboard-header" style="margin-bottom: 20px;">
+            <h2 id="scoreboardMapName" style="color: #ffaa00; margin-bottom: 5px;">-</h2>
+            <p id="scoreboardMatchDate" style="color: #888; font-size: 0.9em; margin: 0;"></p>
+        </div>
+        <div id="scoreboardTableContainer" style="max-height: 400px; overflow-y: auto; margin-bottom: 15px;">
+            <!-- O placar será injetado aqui -->
+        </div>
+    </div>
+</div>

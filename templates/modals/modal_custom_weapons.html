@@ -1,0 +1,14 @@
+<!-- Modal de Armas Personalizadas -->
+<div id="customWeaponsModal" class="modal" style="display:none; z-index: 1001;">
+    <div class="modal-content custom-gear-modal">
+        <span class="close" onclick="closeCustomWeaponsModal()">&times;</span>
+        <h2>Selecione as Armas Permitidas</h2>
+        <p style="font-size: 0.9em; color: #aaa; margin-bottom: 10px;">Desmarque para proibir uma arma.</p>
+        <div class="modal-actions" style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button onclick="selectAllWeapons()" style="flex: 1; background: #444; font-size: 0.85em;"><i class="fas fa-check-double"></i> Marcar Todas</button>
+            <button onclick="unselectAllWeapons()" style="flex: 1; background: #444; font-size: 0.85em;"><i class="fas fa-square"></i> Desmarcar Todas</button>
+        </div>
+        <div id="customWeaponsList" class="custom-weapons-grid"></div>
+        <button id="confirmCustomWeapons" onclick="closeCustomWeaponsModal(true)">Salvar Armas</button>
+    </div>
+</div>

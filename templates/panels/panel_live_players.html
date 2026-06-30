@@ -1,0 +1,25 @@
+<!-- Quadro Flutuante de Jogadores Online -->
+<div id="livePlayersFloatingPanel" style="display: none;">
+    <div class="floating-panel-header">
+        <span><i class="fas fa-gamepad" style="color: #00ff99; margin-right: 5px;"></i> Jogando Agora</span>
+        <span id="floatingPlayerCount" class="badge">0/12</span>
+    </div>
+    <div class="floating-panel-subheader">
+        <span id="floatingMapName"><i class="fas fa-map"></i> -</span>
+    </div>
+    <div id="floatingPlayerList" class="floating-player-list">
+        <!-- Jogadores serão injetados aqui -->
+    </div>
+</div>
+
+<!-- Widget de Status do Servidor RCON -->
+<div id="serverWidget" class="server-widget">
+    <div class="server-status-container">
+        <span id="serverStatusDot" class="status-dot offline"></span>
+        <span id="serverStatusText">Servidor Offline</span>
+    </div>
+    <div class="server-widget-actions">
+        <button id="startServerBtn" class="btn-start" onclick="startServer()"><i class="fas fa-play"></i> Iniciar</button>
+        <button id="stopServerBtn" class="btn-stop" style="display:none" onclick="stopServer()"><i class="fas fa-stop"></i> Parar</button>
+    </div>
+</div>

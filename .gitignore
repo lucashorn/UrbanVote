@@ -17,3 +17,19 @@ votes.json
 ehthumbs.db
 Thumbs.db
 avatars/
+
+# Game Server Files
+cstrike
+cstrike/
+
+# Environment Variables
+.env
+
+# SQLite Databases
+*.db
+urban.db
+votes.db
+
+# Python Caches
+__pycache__/
+*.pyc

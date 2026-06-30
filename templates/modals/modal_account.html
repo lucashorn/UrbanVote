@@ -1,0 +1,56 @@
+<!-- Modal de Gerenciamento de Conta -->
+<div id="accountMgmtModal" class="modal">
+    <div class="modal-content compact-modal" style="max-width: 450px; border-color: #a855f7;">
+        <span class="close" id="accountMgmtClose">&times;</span>
+        <h2 style="color: #a855f7; margin-bottom: 20px;"><i class="fas fa-user-cog"></i> Minha Conta</h2>
+
+        <div id="accountStatusArea" style="margin-bottom: 20px; padding: 15px; background: #161b22; border: 1px solid #333; border-radius: 8px;">
+            <p style="margin: 0; font-size: 0.95em;">Usuário: <strong id="mgmtUsername" style="color: #a855f7;"></strong></p>
+            <div id="mgmtLinkedPlayerSection" style="margin-top: 10px;">
+                <!-- Preenchido via JS -->
+            </div>
+        </div>
+
+        <button id="viewMyProfileBtn" style="width: 100%; margin-bottom: 20px; padding: 10px; font-weight: bold; background: #a855f7; border: 1px solid #a855f7; color: white; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9em; transition: background 0.2s;">
+            <i class="fas fa-user"></i> Visualizar Meu Perfil
+        </button>
+
+        <!-- Trocar Avatar (Disponível para todos os usuários logados) -->
+        <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #333;">
+            <h3 style="color: #eee; font-size: 1.1em; margin: 0 0 10px 0;"><i class="fas fa-image"></i> Foto de Perfil</h3>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img id="mgmtAvatarPreview" src="img/default_avatar.png" style="width: 64px; height: 64px; border-radius: 50%; border: 2px solid #a855f7; object-fit: cover;">
+                <div>
+                    <input type="file" id="mgmtAvatarInput" accept="image/*" style="display: none;">
+                    <button onclick="document.getElementById('mgmtAvatarInput').click()" class="setup-toggle-btn active" style="padding: 8px 12px; font-size: 0.85em;">Selecionar Nova Foto</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Área de Ações do Personagem Vinculado (Troca de Nome) -->
+        <div id="mgmtLinkedActions" style="display: none;">
+            <div>
+                <h3 style="color: #eee; font-size: 1.1em; margin: 0 0 10px 0;"><i class="fas fa-user-edit"></i> Mudar Nome do Personagem</h3>
+                <p style="font-size: 0.8em; color: #888; margin-bottom: 10px;">Se você trocou de nick no jogo, digite seu novo nick e o novo código de autenticação gerado via <strong>!auth</strong> para atualizar seu cadastro sem perder o ranking.</p>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <input type="text" id="mgmtNewNick" placeholder="Novo Nick no Jogo" style="padding: 8px; border-radius: 6px; background: #161b22; border: 1px solid #333; color: white;">
+                    <input type="text" id="mgmtNewNickCode" placeholder="Código de Autenticação (!auth)" style="padding: 8px; border-radius: 6px; background: #161b22; border: 1px solid #333; color: white;">
+                    <button onclick="handleRenameCharacter()" style="background: #00ff99; color: black; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">ATUALIZAR NOME</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Área de Vínculo (se não estiver vinculado) -->
+        <div id="mgmtUnlinkedActions" style="display: none;">
+            <h3 style="color: #ffaa00; font-size: 1.1em; margin: 0 0 10px 0;"><i class="fas fa-link"></i> Vincular Personagem</h3>
+            <p style="font-size: 0.85em; color: #aaa; margin-bottom: 15px;">Para gerenciar seu ranking ou sincronizar suas estatísticas de jogo, você precisa vincular seu personagem do jogo.</p>
+            <p style="font-size: 0.8em; color: #888; margin-bottom: 10px;">1. Entre no jogo e digite <strong>!auth</strong> no chat para receber seu código.<br>2. Insira o nick e o código recebido abaixo:</p>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <input type="text" id="mgmtLinkNick" placeholder="Seu Nick no Jogo" style="padding: 8px; border-radius: 6px; background: #161b22; border: 1px solid #333; color: white;">
+                <input type="text" id="mgmtLinkCode" placeholder="Código (ex: 1234)" style="padding: 8px; border-radius: 6px; background: #161b22; border: 1px solid #333; color: white;">
+                <button onclick="handleLinkCharacter()" style="background: #a855f7; color: white; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">VINCULAR AGORA</button>
+            </div>
+        </div>
+    </div>
+</div>
